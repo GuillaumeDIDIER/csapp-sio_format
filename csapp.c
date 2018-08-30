@@ -2,6 +2,9 @@
  * csapp.c - Functions for the CS:APP3e book
  *
  * Updated 10/2016 reb:
+ *   - Made unix_error signal safe.
+ *
+ * Updated 10/2016 reb:
  *   - Fixed bug in sio_ltoa that didn't cover negative numbers
  *
  * Updated 2/2016 droh:
@@ -31,8 +34,10 @@
 /* $begin unixerror */
 void unix_error(char *msg) /* Unix-style error */
 {
-    fprintf(stderr, "%s: %s\n", msg, strerror(errno));
-    exit(0);
+    sio_puts(msg);
+    sio_puts(": ");
+    sio_puts(strerror(errno));
+    sio_error("\n");
 }
 /* $end unixerror */
 
@@ -121,11 +126,7 @@ void Pause()
 
 unsigned int Sleep(unsigned int secs) 
 {
-    unsigned int rc;
-
-    if ((rc = sleep(secs)) < 0)
-	unix_error("Sleep error");
-    return rc;
+    return sleep(secs);
 }
 
 unsigned int Alarm(unsigned int seconds) {
