@@ -40,35 +40,38 @@
 /* $begin errorfuns */
 /* $begin unixerror */
 /* Unix-style error */
-void unix_error(char *msg) {
+void unix_error(const char *msg) {
     sio_puts(msg);
     sio_puts(": ");
-    sio_puts(strerror(errno));
-    sio_error("\n");
+    sio_error(strerror(errno));
+    // This line makes unix-error signal unsafe.
+    // If you need absolute signal safety
+    // you should write a signal_safe_unix_error
+    // and use it in dedicated wrappers.
 }
 /* $end unixerror */
 
 /* Posix-style error */
-void posix_error(int code, char *msg) {
+void posix_error(int code, const char *msg) {
     fprintf(stderr, "%s: %s\n", msg, strerror(code));
     exit(0);
 }
 
 /* Getaddrinfo-style error */
-void gai_error(int code, char *msg) {
+void gai_error(int code, const char *msg) {
     fprintf(stderr, "%s: %s\n", msg, gai_strerror(code));
     exit(0);
 }
 
 /* Application error */
-void app_error(char *msg) {
+void app_error(const char *msg) {
     fprintf(stderr, "%s\n", msg);
     exit(0);
 }
 /* $end errorfuns */
 
 /* Obsolete gethostbyname error */
-void dns_error(char *msg) {
+void dns_error(const char *msg) {
     fprintf(stderr, "%s\n", msg);
     exit(0);
 }
@@ -82,6 +85,7 @@ void dns_error(char *msg) {
  * @brief   Wrapper for libc fork(). Exits on failure.
  * @return  PID of child process in parent, 0 in child.
  */
+/* $begin forkwrapper */
 pid_t Fork(void) {
     pid_t pid;
 
@@ -91,6 +95,7 @@ pid_t Fork(void) {
 
     return pid;
 }
+/* $end forkwrapper */
 
 /**
  * @brief Wrapper for libc execve(). Exits on error.
@@ -110,6 +115,7 @@ void Execve(const char *filename, char *const argv[], char *const envp[]) {
  *
  * @return  PID of reaped child.
  */
+/* $begin wait */
 pid_t Wait(int *status) {
     pid_t pid;
 
@@ -119,6 +125,7 @@ pid_t Wait(int *status) {
 
     return pid;
 }
+/* $end wait */
 
 /**
  * @brief Wrapper for libc waitpid(). Exits on error.
@@ -143,6 +150,7 @@ pid_t Waitpid(pid_t pid, int *iptr, int options) {
  * @param pid       PID of the process.
  * @param signum    Signal to send.
  */
+/* $begin kill */
 void Kill(pid_t pid, int signum) {
     int rc;
 
@@ -150,6 +158,7 @@ void Kill(pid_t pid, int signum) {
         unix_error("Kill error");
     }
 }
+/* $end kill */
 
 void Pause() {
     (void) pause();
@@ -200,6 +209,7 @@ pid_t Getpgrp(void) {
  *
  * @return  Previous disposition of the signal.
  */
+/* $begin sigaction */
 handler_t *Signal(int signum, handler_t *handler) {
     struct sigaction action, old_action;
 
@@ -213,6 +223,7 @@ handler_t *Signal(int signum, handler_t *handler) {
 
     return old_action.sa_handler;
 }
+/* $end sigaction */
 
 /**
  * @brief   Wrapper for libc sigprocmask(). Exits on failure.
@@ -329,30 +340,28 @@ static void sio_reverse(char s[]) {
 }
 
 /* sio_ltoa - Convert long to base b string (from K&R) */
-static void sio_ltoa(long v, char s[], int b) {
+static void sio_ltoa(long input, char s[], int b) {
     int c, i = 0;
-    int neg = v < 0;
-
-    if (neg)
-        v = -v;
+    int neg = (input < 0);
+    unsigned long v = neg ? -input : input;
 
     do {
         s[i++] = ((c = (v % b)) < 10)  ?  c + '0' : c - 10 + 'a';
     } while ((v /= b) > 0);
-
-    if (neg)
+    if (neg) {
         s[i++] = '-';
-
+    }
     s[i] = '\0';
     sio_reverse(s);
 }
 
 /* sio_strlen - Return length of string (from K&R) */
-static size_t sio_strlen(char s[]) {
+static size_t sio_strlen(const char s[]) {
     int i = 0;
 
-    while (s[i] != '\0')
+    while (s[i] != '\0') {
         ++i;
+    }
     return i;
 }
 /* $end sioprivate */
@@ -361,7 +370,7 @@ static size_t sio_strlen(char s[]) {
 /* $begin siopublic */
 
 /* Put string */
-ssize_t sio_puts(char s[]) {
+ssize_t sio_puts(const char s[]) {
     return write(STDOUT_FILENO, s, sio_strlen(s)); //line:csapp:siostrlen
 }
 
@@ -374,8 +383,9 @@ ssize_t sio_putl(long v) {
 }
 
 /* Put error message and exit */
-void sio_error(char s[]) {
+void sio_error(const char s[]) {
     sio_puts(s);
+    sio_puts("\n");
     _exit(1);                                      //line:csapp:sioexit
 }
 /* $end siopublic */
@@ -398,7 +408,7 @@ ssize_t Sio_putl(long v) {
  * @param s[]   String to print to stdout.
  * @return      Number of bytes written.
  */
-ssize_t Sio_puts(char s[]) {
+ssize_t Sio_puts(const char s[]) {
     ssize_t n;
 
     if ((n = sio_puts(s)) < 0) {
@@ -412,7 +422,7 @@ ssize_t Sio_puts(char s[]) {
  * @brief Wrapper for sio_error(). Exits on failure.
  * @param s[]   Error message to print to stdout.
  */
-void Sio_error(char s[]) {
+void Sio_error(const char s[]) {
     sio_error(s);
 }
 
@@ -778,10 +788,11 @@ void Inet_pton(int af, const char *src, void *dst) {
     int rc;
 
     rc = inet_pton(af, src, dst);
-    if (rc == 0)
+    if (rc == 0) {
         app_error("inet_pton error: invalid dotted-decimal address");
-    else if (rc < 0)
+    } else if (rc < 0) {
         unix_error("Inet_pton error");
+    }
 }
 
 /*******************************************

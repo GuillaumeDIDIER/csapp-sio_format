@@ -1,6 +1,20 @@
 /*
  * csapp.h - prototypes and definitions for the CS:APP3e book
  */
+
+/*
+ * The wrapper functions in this file, which use unix_error, are technically
+ * not async-signal-safe due to the use of strerror. If this is not suitable,
+ * you should write your own wrapper functions.
+ *
+ * For most cases, however, we consider this to be only a minor caveat. The
+ * only situation that results in a lack of safety is quite unlikely: the use
+ * of unix_error (which will terminate the program anyway) must interrupt a
+ * function that is holding the same locks as strerror. Since this is a rare
+ * and exceptional condition, we consider it acceptable to use these wrapper
+ * functions inside of signal handlers.
+ */
+
 /* $begin csapp.h */
 #ifndef __CSAPP_H__
 #define __CSAPP_H__
@@ -63,11 +77,11 @@ extern char **environ; /* Defined by libc */
 #define LISTENQ  1024  /* Second argument to listen() */
 
 /* Our own error-handling functions */
-void unix_error(char *msg);
-void posix_error(int code, char *msg);
-void dns_error(char *msg);
-void gai_error(int code, char *msg);
-void app_error(char *msg);
+void unix_error(const char *msg);
+void posix_error(int code, const char *msg);
+void dns_error(const char *msg);
+void gai_error(int code, const char *msg);
+void app_error(const char *msg);
 
 /* Process control wrappers */
 pid_t Fork(void);
@@ -93,14 +107,14 @@ int Sigismember(const sigset_t *set, int signum);
 int Sigsuspend(const sigset_t *set);
 
 /* Sio (Signal-safe I/O) routines */
-ssize_t sio_puts(char s[]);
+ssize_t sio_puts(const char s[]);
 ssize_t sio_putl(long v);
-void sio_error(char s[]);
+void sio_error(const char s[]);
 
 /* Sio wrappers */
-ssize_t Sio_puts(char s[]);
+ssize_t Sio_puts(const char s[]);
 ssize_t Sio_putl(long v);
-void Sio_error(char s[]);
+void Sio_error(const char s[]);
 
 /* Unix I/O wrappers */
 int Open(const char *pathname, int flags, mode_t mode);
