@@ -1,6 +1,12 @@
 /*
  * csapp.c - Functions for the CS:APP3e book
  *
+ * Updated 6/2018 khg, gdidier:
+ *   - Document caveat to async-signal-safety of unix_error
+ *   - Print trailing newline in sio_error
+ *   - Fix output of sio_ltoa(LONG_MIN)
+ *   - Const-correctness for strings
+ *
  * Updated 4/2017 shrikang:
  *   - Improved comments.
  *
@@ -44,10 +50,8 @@ void unix_error(const char *msg) {
     sio_puts(msg);
     sio_puts(": ");
     sio_error(strerror(errno));
-    // This line makes unix-error signal unsafe.
-    // If you need absolute signal safety
-    // you should write a signal_safe_unix_error
-    // and use it in dedicated wrappers.
+    // This call to sio_error makes unix_error async-signal-unsafe.
+    // See header comment in csapp.h for more information.
 }
 /* $end unixerror */
 
