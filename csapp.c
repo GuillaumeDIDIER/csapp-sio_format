@@ -581,6 +581,15 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
 
     return num_written;
 }
+
+/* Async-signal-safe assertion support*/
+void __sio_assert_fail(const char *assertion, const char *file,
+                       unsigned int line, const char *function) {
+    Sio_fprintf(STDERR_FILENO,
+                "%s: %s:%u: %s: Assertion `%s' failed.\n",
+                __progname, file, line, function, assertion);
+    abort();
+}
 /* $end siopublic */
 
 /*******************************

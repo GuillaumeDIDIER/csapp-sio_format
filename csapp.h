@@ -72,6 +72,7 @@ typedef struct {
 /* External variables */
 extern int h_errno;    /* Defined by BIND for DNS errors */
 extern char **environ; /* Defined by libc */
+extern char *__progname;
 
 /* Misc constants */
 #define MAXLINE  8192  /* Max text line length */
@@ -118,6 +119,15 @@ ssize_t sio_fprintf(int fileno, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp)
   __attribute__ ((format (printf, 2, 0)));
+
+#define sio_assert(expr) \
+    ((expr) ? \
+     (void) 0 : \
+     __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
+
+void __sio_assert_fail(const char *assertion, const char *file,
+                       unsigned int line, const char *function)
+                       __attribute__ ((noreturn));
 
 /* Sio wrappers */
 ssize_t Sio_puts(const char s[]);
