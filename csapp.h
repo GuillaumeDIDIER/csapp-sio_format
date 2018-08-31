@@ -44,6 +44,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
+#include <stdbool.h>
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 /* $begin createmasks */
@@ -110,11 +112,23 @@ int Sigsuspend(const sigset_t *set);
 ssize_t sio_puts(const char s[]);
 ssize_t sio_putl(long v);
 void sio_error(const char s[]);
+ssize_t sio_printf(const char *fmt, ...)
+  __attribute__ ((format (printf, 1, 2)));
+ssize_t sio_fprintf(int fileno, const char *fmt, ...)
+  __attribute__ ((format (printf, 2, 3)));
+ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp)
+  __attribute__ ((format (printf, 2, 0)));
 
 /* Sio wrappers */
 ssize_t Sio_puts(const char s[]);
 ssize_t Sio_putl(long v);
 void Sio_error(const char s[]);
+ssize_t Sio_printf(const char *fmt, ...)
+  __attribute__ ((format (printf, 1, 2)));
+ssize_t Sio_fprintf(int fileno, const char *fmt, ...)
+  __attribute__ ((format (printf, 2, 3)));
+ssize_t Sio_vfprintf(int fileno, const char *fmt, va_list argp)
+  __attribute__ ((format (printf, 2, 0)));
 
 /* Unix I/O wrappers */
 int Open(const char *pathname, int flags, mode_t mode);
