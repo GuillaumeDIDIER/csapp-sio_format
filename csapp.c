@@ -1,6 +1,10 @@
 /*
  * csapp.c - Functions for the CS:APP3e book
  *
+ * Updated 8/2018 khg:
+ *   - Add sio_printf, sio_assert
+ *   - Improve comments
+ *
  * Updated 6/2018 khg, gdidier:
  *   - Document caveat to async-signal-safety of unix_error
  *   - Print trailing newline in sio_error
@@ -164,13 +168,16 @@ void Kill(pid_t pid, int signum) {
 }
 /* $end kill */
 
+/**
+ * @brief   Identical to libc pause(), but does not return a value.
+ */
 void Pause() {
     (void) pause();
     return;
 }
 
 /**
- * @brief   Wrapper for libc sleep().
+ * @brief   Identical to libc sleep().
  * @param secs  Count of seconds to wait for.
  *
  * @return  Zero after time elapsed, seconds left if interrupted.
@@ -198,6 +205,10 @@ void Setpgid(pid_t pid, pid_t pgid) {
     return;
 }
 
+/**
+ * @brief   Identical to libc getpgrp().
+ * @return   The current process group.
+ */
 pid_t Getpgrp(void) {
     return getpgrp();
 }
@@ -389,11 +400,24 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
 /* $begin siopublic */
 
 /* Put string */
+/**
+ * @brief   Prints a C string to stdout.
+ * @param s   String to print to stdout.
+ * @return    The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ */
 ssize_t sio_puts(const char s[]) {
     return write(STDOUT_FILENO, s, strlen(s)); //line:csapp:siostrlen
 }
 
-/* Put long */
+/**
+ * @brief   Prints a long value to stdout.
+ * @param v   The long value to print to stdout.
+ * @return    The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ */
 ssize_t sio_putl(long v) {
     char s[128];
 
@@ -401,14 +425,28 @@ ssize_t sio_putl(long v) {
     return sio_puts(s);
 }
 
-/* Put error message and exit */
+/**
+ * @brief   Prints an error message, and exits uncleanly with status 1.
+ * @param s   Error message to print to stdout.
+ * @return    Does not return.
+ *
+ * @remark   This function is async-signal-safe.
+ */
 void sio_error(const char s[]) {
     sio_puts(s);
     sio_puts("\n");
-    _exit(1);                                      //line:csapp:sioexit
+    _exit(1);    //line:csapp:sioexit
 }
 
-/* sio_printf - Print format string to STDOUT_FILENO */
+/**
+ * @brief   Prints formatted output to stdout.
+ * @param fmt   The format string used to determine the output.
+ * @param ...   The arguments for the format string.
+ * @return      The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_vfprintf
+ */
 ssize_t sio_printf(const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
@@ -417,7 +455,16 @@ ssize_t sio_printf(const char *fmt, ...) {
     return ret;
 }
 
-/* sio_fprintf - Print format string to fileno */
+/**
+ * @brief   Prints formatted output to a file descriptor.
+ * @param fileno   The file descriptor to print output to.
+ * @param fmt      The format string used to determine the output.
+ * @param ...      The arguments for the format string.
+ * @return         The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_vfprintf
+ */
 ssize_t sio_fprintf(int fileno, const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
@@ -426,7 +473,27 @@ ssize_t sio_fprintf(int fileno, const char *fmt, ...) {
     return ret;
 }
 
-/* sio_vprintf - Print format string from vararg list to fileno */
+/**
+ * @brief   Prints formatted output to a file descriptor from a va_list.
+ * @param fileno   The file descriptor to print output to.
+ * @param fmt      The format string used to determine the output.
+ * @param argp     The arguments for the format string.
+ * @return         The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ *
+ * This is a reentrant and async-signal-safe implementation of vfprintf, used
+ * to implement the associated formatted sio functions.
+ *
+ * This function writes directly to a file descriptor (using the `rio_writen`
+ * function from csapp), as opposed to a `FILE *` from the standard library.
+ * However, since these writes are unbuffered, this is not very efficient, and
+ * should only be used when async-signal-safety is necessary.
+ *
+ * The only supported format specifiers are the following:
+ *  -  Int types: %d, %i, %u, %x (with size specifiers l, z)
+ *  -  Others: %c, %s, %%
+ */
 ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
     size_t pos = 0;
     ssize_t num_written = 0;
@@ -595,6 +662,14 @@ void __sio_assert_fail(const char *assertion, const char *file,
 /*******************************
  * Wrappers for the SIO routines
  ******************************/
+/**
+ * @brief   Wrapper for sio_putl(). Exits on failure.
+ * @param s   Long value to print to stdout.
+ * @return    Number of bytes written.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_putl
+ */
 ssize_t Sio_putl(long v) {
     ssize_t n;
 
@@ -606,9 +681,12 @@ ssize_t Sio_putl(long v) {
 }
 
 /**
- * @brief Wrapper for sio_puts(). Exits on failure.
- * @param s[]   String to print to stdout.
- * @return      Number of bytes written.
+ * @brief   Wrapper for sio_puts(). Exits on failure.
+ * @param s   String to print to stdout.
+ * @return    Number of bytes written.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_puts
  */
 ssize_t Sio_puts(const char s[]) {
     ssize_t n;
@@ -621,14 +699,26 @@ ssize_t Sio_puts(const char s[]) {
 }
 
 /**
- * @brief Wrapper for sio_error(). Exits on failure.
- * @param s[]   Error message to print to stdout.
+ * @brief   Identical to sio_error().
+ * @param s   Error message to print to stdout.
+ * @return    Does not return.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_error
  */
 void Sio_error(const char s[]) {
     sio_error(s);
 }
 
-/* Sio_printf - wrapper for sio_printf */
+/**
+ * @brief   Wrapper for sio_printf(). Exits on failure.
+ * @param fmt   The format string used to determine the output.
+ * @param ...   The arguments for the format string.
+ * @return      The number of bytes written.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_printf
+ */
 ssize_t Sio_printf(const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
@@ -636,6 +726,17 @@ ssize_t Sio_printf(const char *fmt, ...) {
     va_end(argp);
     return ret;
 }
+
+/**
+ * @brief   Wrapper for sio_fprintf(). Exits on failure.
+ * @param fileno   The file descriptor to print output to.
+ * @param fmt      The format string used to determine the output.
+ * @param ...      The arguments for the format string.
+ * @return         The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_fprintf
+ */
 
 /* Sio_fprintf - wrapper for sio_fprintf */
 ssize_t Sio_fprintf(int fileno, const char *fmt, ...) {
@@ -646,7 +747,16 @@ ssize_t Sio_fprintf(int fileno, const char *fmt, ...) {
     return ret;
 }
 
-/* Sio_vfprintf - wrapper for sio_vfprintf */
+/**
+ * @brief   Wrapper for sio_vprintf(). Exits on failure.
+ * @param fileno   The file descriptor to print output to.
+ * @param fmt      The format string used to determine the output.
+ * @param argp     The arguments for the format string.
+ * @return         The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_vfprintf
+ */
 ssize_t Sio_vfprintf(int fileno, const char *fmt, va_list argp) {
     ssize_t ret = sio_vfprintf(fileno, fmt, argp);
     if (ret < 0) {
