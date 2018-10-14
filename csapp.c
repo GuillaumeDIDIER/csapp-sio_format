@@ -544,6 +544,22 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
                 pos += 2;
                 break;
 
+            // Pointer type
+            case 'p': {
+                void *ptr = va_arg(argp, void *);
+                if (ptr == NULL) {
+                    str = "(nil)";
+                    len = strlen(str);
+                    handled = true;
+                }
+                else {
+                    convert_type = 'p';
+                    convert_value.u = (uintmax_t) (uintptr_t) ptr;
+                }
+                pos += 2;
+                break;
+            }
+
             // Int types with no format specifier
             case 'd':
             case 'i':
@@ -561,6 +577,11 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
                 convert_value.u = (uintmax_t) va_arg(argp, unsigned);
                 pos += 2;
                 break;
+            case 'o':
+                convert_type = 'o';
+                convert_value.u = (uintmax_t) va_arg(argp, unsigned);
+                pos += 2;
+                break;
 
             // Int types with size format: long
             case 'l': {
@@ -568,17 +589,26 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
                 case 'd':
                 case 'i':
                     convert_type = 'd';
-                    convert_value.s = (intmax_t) va_arg(argp, long);
+                    convert_value.s =
+                      (intmax_t) va_arg(argp, long);
                     pos += 3;
                     break;
                 case 'u':
                     convert_type = 'u';
-                    convert_value.u = (uintmax_t) va_arg(argp, unsigned long);
+                    convert_value.u =
+                      (uintmax_t) va_arg(argp, unsigned long);
                     pos += 3;
                     break;
                 case 'x':
                     convert_type = 'x';
-                    convert_value.u = (uintmax_t) va_arg(argp, unsigned long);
+                    convert_value.u =
+                      (uintmax_t) va_arg(argp, unsigned long);
+                    pos += 3;
+                    break;
+                case 'o':
+                    convert_type = 'o';
+                    convert_value.u =
+                      (uintmax_t) va_arg(argp, unsigned long);
                     pos += 3;
                     break;
                 }
@@ -603,6 +633,11 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
                     convert_value.u = (uintmax_t) va_arg(argp, size_t);
                     pos += 3;
                     break;
+                case 'o':
+                    convert_type = 'o';
+                    convert_value.u = (uintmax_t) va_arg(argp, size_t);
+                    pos += 3;
+                    break;
                 }
             }
 
@@ -623,6 +658,17 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
             case 'x':
                 str = buf;
                 len = uintmax_to_string(convert_value.u, buf, 16);
+                handled = true;
+                break;
+            case 'o':
+                str = buf;
+                len = uintmax_to_string(convert_value.u, buf, 8);
+                handled = true;
+                break;
+            case 'p':
+                str = buf;
+                strcpy(buf, "0x");
+                len = uintmax_to_string(convert_value.u, buf + 2, 16) + 2;
                 handled = true;
                 break;
             }
