@@ -44,6 +44,9 @@
 /* $begin csapp.c */
 #include "csapp.h"
 
+/* Signal safe I/O to be used internally to csapp library */
+static ssize_t sio_puts(const char s[]);
+
 /**************************
  * Error-handling functions
  **************************/
@@ -407,22 +410,8 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
  *
  * @remark   This function is async-signal-safe.
  */
-ssize_t sio_puts(const char s[]) {
+static ssize_t sio_puts(const char s[]) {
     return write(STDOUT_FILENO, s, strlen(s)); //line:csapp:siostrlen
-}
-
-/**
- * @brief   Prints a long value to stdout.
- * @param v   The long value to print to stdout.
- * @return    The number of bytes written, or -1 on error.
- *
- * @remark   This function is async-signal-safe.
- */
-ssize_t sio_putl(long v) {
-    char s[128];
-
-    intmax_to_string(v, s, 10);   //line:csapp:sioltoa
-    return sio_puts(s);
 }
 
 /**
@@ -708,41 +697,6 @@ void __sio_assert_fail(const char *assertion, const char *file,
 /*******************************
  * Wrappers for the SIO routines
  ******************************/
-/**
- * @brief   Wrapper for sio_putl(). Exits on failure.
- * @param s   Long value to print to stdout.
- * @return    Number of bytes written.
- *
- * @remark   This function is async-signal-safe.
- * @see      sio_putl
- */
-ssize_t Sio_putl(long v) {
-    ssize_t n;
-
-    if ((n = sio_putl(v)) < 0) {
-        sio_error("Sio_putl error");
-    }
-
-    return n;
-}
-
-/**
- * @brief   Wrapper for sio_puts(). Exits on failure.
- * @param s   String to print to stdout.
- * @return    Number of bytes written.
- *
- * @remark   This function is async-signal-safe.
- * @see      sio_puts
- */
-ssize_t Sio_puts(const char s[]) {
-    ssize_t n;
-
-    if ((n = sio_puts(s)) < 0) {
-        sio_error("Sio_puts error");
-    }
-
-    return n;
-}
 
 /**
  * @brief   Identical to sio_error().
