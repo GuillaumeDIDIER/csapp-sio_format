@@ -480,8 +480,8 @@ ssize_t sio_fprintf(int fileno, const char *fmt, ...) {
  * should only be used when async-signal-safety is necessary.
  *
  * The only supported format specifiers are the following:
- *  -  Int types: %d, %i, %u, %x (with size specifiers l, z)
- *  -  Others: %c, %s, %%
+ *  -  Int types: %d, %i, %u, %x, %o (with size specifiers l, z)
+ *  -  Others: %c, %s, %%, %p
  */
 ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
     size_t pos = 0;
@@ -674,7 +674,7 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
         // Write output
         if (len > 0) {
             ssize_t ret = rio_writen(fileno, (void *) str, len);
-            if (ret == -1 || (size_t) ret != len) {
+            if (ret < 0 || (size_t) ret != len) {
                 return -1;
             }
             num_written += len;
