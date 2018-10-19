@@ -110,7 +110,8 @@ int Sigismember(const sigset_t *set, int signum);
 int Sigsuspend(const sigset_t *set);
 
 /* Sio (Signal-safe I/O) routines */
-void sio_error(const char s[]);
+void sio_error(const char s[])
+  __attribute__ ((noreturn));
 ssize_t sio_printf(const char *fmt, ...)
   __attribute__ ((format (printf, 1, 2)));
 ssize_t sio_fprintf(int fileno, const char *fmt, ...)
@@ -128,7 +129,8 @@ void __sio_assert_fail(const char *assertion, const char *file,
                        __attribute__ ((noreturn));
 
 /* Sio wrappers */
-void Sio_error(const char s[]);
+void Sio_error(const char s[])
+  __attribute__ ((noreturn));
 ssize_t Sio_printf(const char *fmt, ...)
   __attribute__ ((format (printf, 1, 2)));
 ssize_t Sio_fprintf(int fileno, const char *fmt, ...)
