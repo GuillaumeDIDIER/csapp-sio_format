@@ -174,7 +174,7 @@ void Kill(pid_t pid, int signum) {
 /**
  * @brief   Identical to libc pause(), but does not return a value.
  */
-void Pause() {
+void Pause(void) {
     (void) pause();
     return;
 }
