@@ -1,6 +1,10 @@
 /*
  * csapp.c - Functions for the CS:APP3e book
  *
+ * Updated 10/2018 khg, mkasper:
+ *   - Remove sio_puts, sio_putl
+ *   - Add %p and %o to sio_printf
+ *
  * Updated 8/2018 khg:
  *   - Add sio_printf, sio_assert
  *   - Improve comments
