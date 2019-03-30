@@ -49,7 +49,7 @@
  *   - rio_readlineb: fixed edge case bug
  *   - rio_readnb: removed redundant EINTR check
  */
-/* $begin csapp.c */
+
 #include "csapp.h"
 
 #include <stdio.h>                      /* stderr */
@@ -74,7 +74,6 @@
 
 /* Private sio functions */
 
-/* $begin sioprivate */
 /* sio_reverse - Reverse a string (from K&R) */
 static void sio_reverse(char s[], size_t len) {
     size_t i, j;
@@ -394,7 +393,6 @@ void __sio_assert_fail(const char *assertion, const char *file,
                 __progname, file, line, function, assertion);
     abort();
 }
-/* $end siopublic */
 
 
 /*******************************
@@ -426,7 +424,6 @@ void V(sem_t *sem) {
 /*
  * rio_readn - Robustly read n bytes (unbuffered)
  */
-/* $begin rio_readn */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nread;
@@ -448,12 +445,10 @@ ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
     }
     return n - nleft;             /* Return >= 0 */
 }
-/* $end rio_readn */
 
 /*
  * rio_writen - Robustly write n bytes (unbuffered)
  */
-/* $begin rio_writen */
 ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nwritten;
@@ -473,7 +468,6 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
     }
     return n;
 }
-/* $end rio_writen */
 
 
 /*
@@ -484,7 +478,6 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
  *    entry, rio_read() refills the internal buffer via a call to
  *    read() if the internal buffer is empty.
  */
-/* $begin rio_read */
 static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     int cnt;
 
@@ -513,23 +506,19 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     rp->rio_cnt -= cnt;
     return cnt;
 }
-/* $end rio_read */
 
 /*
  * rio_readinitb - Associate a descriptor with a read buffer and reset buffer
  */
-/* $begin rio_readinitb */
 void rio_readinitb(rio_t *rp, int fd) {
     rp->rio_fd = fd;
     rp->rio_cnt = 0;
     rp->rio_bufptr = rp->rio_buf;
 }
-/* $end rio_readinitb */
 
 /*
  * rio_readnb - Robustly read n bytes (buffered)
  */
-/* $begin rio_readnb */
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nread;
@@ -546,12 +535,10 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
     }
     return (n - nleft);         /* return >= 0 */
 }
-/* $end rio_readnb */
 
 /*
  * rio_readlineb - Robustly read a text line (buffered)
  */
-/* $begin rio_readlineb */
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
     size_t n;
     int rc;
@@ -577,7 +564,6 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
     *bufp = 0;
     return n-1;
 }
-/* $end rio_readlineb */
 
 /********************************
  * Client/server helper functions
@@ -591,7 +577,6 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
  *       -2 for getaddrinfo error
  *       -1 with errno set for other errors.
  */
-/* $begin open_clientfd */
 int open_clientfd(char *hostname, char *port) {
     int clientfd, rc;
     struct addrinfo hints, *listp, *p;
@@ -621,7 +606,7 @@ int open_clientfd(char *hostname, char *port) {
         }
 
         /* Connect failed, try another */
-        if (close(clientfd) < 0) { //line:netp:openclientfd:closefd
+        if (close(clientfd) < 0) {
             fprintf(stderr, "open_clientfd: close failed: %s\n",
                     strerror(errno));
             return -1;
@@ -636,7 +621,6 @@ int open_clientfd(char *hostname, char *port) {
         return clientfd;
     }
 }
-/* $end open_clientfd */
 
 /*
  * open_listenfd - Open and return a listening socket on port. This
@@ -646,7 +630,6 @@ int open_clientfd(char *hostname, char *port) {
  *       -2 for getaddrinfo error
  *       -1 with errno set for other errors.
  */
-/* $begin open_listenfd */
 int open_listenfd(char *port) {
     struct addrinfo hints, *listp, *p;
     int listenfd, rc, optval=1;
@@ -671,7 +654,7 @@ int open_listenfd(char *port) {
         }
 
         /* Eliminates "Address already in use" error from bind */
-        setsockopt(listenfd, SOL_SOCKET,    //line:netp:csapp:setsockopt
+        setsockopt(listenfd, SOL_SOCKET,
                 SO_REUSEADDR, (const void *) &optval , sizeof(int));
 
         /* Bind the descriptor to the address */
@@ -699,7 +682,3 @@ int open_listenfd(char *port) {
     }
     return listenfd;
 }
-/* $end open_listenfd */
-
-/* $end csapp.c */
-
