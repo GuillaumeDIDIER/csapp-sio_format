@@ -1,5 +1,25 @@
-/*
- * csapp.h - prototypes and definitions for the CS:APP3e book
+/**
+ * @file csapp.h
+ * @brief Prototypes and definitions for the CS:APP3e book
+ *
+ * This file consists of four major components:
+ *
+ * - The RIO (robust I/O) package, which allows performing reads and writes
+ *   robustly by handling short reads and writes. It also provides the rio_t
+ *   which allows for buffered reads.
+ *
+ * - The SIO (safe I/O) package, which implements an async-signal-safe variant
+ *   of printf and related calls. (The Sio_puts and Sio_putl functions in the
+ *   textbook have been removed.)
+ *
+ * - Error-checking wrapper functions (similar to those used by Stevens),
+ *   which are used heavily in the textbook. However, most have been removed
+ *   from the file since they tend to discourage students from actually
+ *   thinking about error checking. (P and V remain since their names are
+ *   substantially different from the unwrapped versions.)
+ *
+ * - The open_clientfd and open_listenfd functions, which are protocol-
+ *   independent helpers for client/server programs.
  */
 
 /*

@@ -1,9 +1,13 @@
+/**
+ * @file csapp.c
+ * @brief Functions for the CS:APP3e book
+ */
+
 /*
- * csapp.c - Functions for the CS:APP3e book
- *
  * Updated 03/2019 khg:
  *   - Remove all CSAPP error-checking wrapper functions
  *   - Remove all error-handling functions
+ *   - Begin code quality cleanup
  *
  * Updated 10/2018 khg, mkasper:
  *   - Remove sio_puts, sio_putl
