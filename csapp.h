@@ -8,11 +8,11 @@
  * you should write your own wrapper functions.
  *
  * For most cases, however, we consider this to be only a minor caveat. The
- * only situation that results in a lack of safety is quite unlikely: the use
- * of unix_error (which will terminate the program anyway) must interrupt a
- * function that is holding the same locks as strerror. Since this is a rare
- * and exceptional condition, we consider it acceptable to use these wrapper
- * functions inside of signal handlers.
+ * only situation that results in a lack of safety is quite unlikely: the
+ * failure of a wrapper function (which will terminate the program anyway)
+ * must interrupt a function that is holding the same locks as strerror.
+ * Since this is a rare and exceptional condition, we consider it acceptable
+ * to use these wrapper functions inside of signal handlers.
  */
 
 /* $begin csapp.h */
@@ -59,12 +59,7 @@ extern char *__progname;
 #define MAXBUF   8192  /* Max I/O buffer size */
 #define LISTENQ  1024  /* Second argument to listen() */
 
-/* Our own error-handling functions */
-void unix_error(const char *msg);
-
 /* Sio (Signal-safe I/O) routines */
-void sio_error(const char s[])
-  __attribute__ ((noreturn));
 ssize_t sio_printf(const char *fmt, ...)
   __attribute__ ((format (printf, 1, 2)));
 ssize_t sio_fprintf(int fileno, const char *fmt, ...)

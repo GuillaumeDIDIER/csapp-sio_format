@@ -3,6 +3,7 @@
  *
  * Updated 03/2019 khg:
  *   - Remove all CSAPP error-checking wrapper functions
+ *   - Remove all error-handling functions
  *
  * Updated 10/2018 khg, mkasper:
  *   - Remove sio_puts, sio_putl
@@ -65,24 +66,6 @@
 #include <sys/types.h>                  /* struct sockaddr */
 #include <sys/socket.h>                 /* struct sockaddr */
 
-/* Signal safe I/O to be used internally to csapp library */
-static ssize_t sio_puts(const char s[]);
-
-/**************************
- * Error-handling functions
- **************************/
-/* $begin errorfuns */
-/* $begin unixerror */
-/* Unix-style error */
-void unix_error(const char *msg) {
-    sio_puts(msg);
-    sio_puts(": ");
-    sio_error(strerror(errno));
-    // This call to sio_error makes unix_error async-signal-unsafe.
-    // See header comment in csapp.h for more information.
-}
-/* $end unixerror */
-
 
 /*************************************************************
  * The Sio (Signal-safe I/O) package - simple reentrant output
@@ -143,35 +126,8 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
     sio_reverse(s, len);
     return len;
 }
-/* $end sioprivate */
 
 /* Public Sio functions */
-/* $begin siopublic */
-
-/* Put string */
-/**
- * @brief   Prints a C string to stdout.
- * @param s   String to print to stdout.
- * @return    The number of bytes written, or -1 on error.
- *
- * @remark   This function is async-signal-safe.
- */
-static ssize_t sio_puts(const char s[]) {
-    return write(STDOUT_FILENO, s, strlen(s)); //line:csapp:siostrlen
-}
-
-/**
- * @brief   Prints an error message, and exits uncleanly with status 1.
- * @param s   Error message to print to stdout.
- * @return    Does not return.
- *
- * @remark   This function is async-signal-safe.
- */
-void sio_error(const char s[]) {
-    sio_puts(s);
-    sio_puts("\n");
-    _exit(1);    //line:csapp:sioexit
-}
 
 /**
  * @brief   Prints formatted output to stdout.
@@ -451,13 +407,15 @@ void __sio_assert_fail(const char *assertion, const char *file,
 
 void P(sem_t *sem) {
     if (sem_wait(sem) < 0) {
-        unix_error("P error");
+        sio_fprintf(STDERR_FILENO, "P error: %s\n", strerror(errno));
+        _exit(1);
     }
 }
 
 void V(sem_t *sem) {
     if (sem_post(sem) < 0) {
-        unix_error("V error");
+        sio_fprintf(STDERR_FILENO, "V error: %s\n", strerror(errno));
+        _exit(1);
     }
 }
 
