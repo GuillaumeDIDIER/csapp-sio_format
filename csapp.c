@@ -51,6 +51,20 @@
 /* $begin csapp.c */
 #include "csapp.h"
 
+#include <stdio.h>                      /* stderr */
+#include <string.h>                     /* memset() */
+#include <stdbool.h>                    /* bool */
+#include <stdlib.h>                     /* abort() */
+#include <stddef.h>                     /* ssize_t */
+#include <stdint.h>                     /* intmax_t */
+#include <stdarg.h>                     /* va_list */
+#include <errno.h>                      /* errno */
+#include <unistd.h>                     /* STDIN_FILENO */
+#include <semaphore.h>                  /* sem_t */
+#include <netdb.h>                      /* freeaddrinfo() */
+#include <sys/types.h>                  /* struct sockaddr */
+#include <sys/socket.h>                 /* struct sockaddr */
+
 /* Signal safe I/O to be used internally to csapp library */
 static ssize_t sio_puts(const char s[]);
 
