@@ -3,57 +3,6 @@
  * @brief Functions for the CS:APP3e book
  */
 
-/*
- * Updated 03/2019 khg:
- *   - Remove all CSAPP error-checking wrapper functions
- *   - Remove all error-handling functions
- *   - Begin code quality cleanup
- *
- * Updated 10/2018 khg, mkasper:
- *   - Remove sio_puts, sio_putl
- *   - Add %p and %o to sio_printf
- *
- * Updated 8/2018 khg:
- *   - Add sio_printf, sio_assert
- *   - Improve comments
- *
- * Updated 6/2018 khg, gdidier:
- *   - Document caveat to async-signal-safety of unix_error
- *   - Print trailing newline in sio_error
- *   - Fix output of sio_ltoa(LONG_MIN)
- *   - Const-correctness for strings
- *
- * Updated 4/2017 shrikang:
- *   - Improved comments.
- *
- * Updated 4/2017 szz:
- *   - Improved style
- *   - Fixed several warnings
- *
- * Updated 10/2016 reb:
- *   - Made unix_error signal safe.
- *
- * Updated 10/2016 reb:
- *   - Fixed bug in sio_ltoa that didn't cover negative numbers
- *
- * Updated 2/2016 droh:
- *   - Updated open_clientfd and open_listenfd to fail more gracefully
- *
- * Updated 8/2014 droh:
- *   - New versions of open_clientfd and open_listenfd are reentrant and
- *     protocol independent.
- *
- *   - Added protocol-independent inet_ntop and inet_pton functions. The
- *     inet_ntoa and inet_aton functions are obsolete.
- *
- * Updated 7/2014 droh:
- *   - Aded reentrant sio (signal-safe I/O) routines
- *
- * Updated 4/2013 droh:
- *   - rio_readlineb: fixed edge case bug
- *   - rio_readnb: removed redundant EINTR check
- */
-
 #include "csapp.h"
 
 #include <stdio.h>                      /* stderr */
