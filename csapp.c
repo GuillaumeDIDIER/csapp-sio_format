@@ -399,28 +399,6 @@ void __sio_assert_fail(const char *assertion, const char *file,
 }
 
 
-/*******************************
- * Protocol-independent wrappers
- *******************************/
-
-/*******************************
- * Wrappers for Posix semaphores
- *******************************/
-
-void P(sem_t *sem) {
-    if (sem_wait(sem) < 0) {
-        sio_fprintf(STDERR_FILENO, "P error: %s\n", strerror(errno));
-        _exit(1);
-    }
-}
-
-void V(sem_t *sem) {
-    if (sem_post(sem) < 0) {
-        sio_fprintf(STDERR_FILENO, "V error: %s\n", strerror(errno));
-        _exit(1);
-    }
-}
-
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/

@@ -50,9 +50,6 @@
 #define DEF_MODE   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
 #define DEF_UMASK  S_IWGRP|S_IWOTH
 
-/* Simplifies calls to bind(), connect(), and accept() */
-typedef struct sockaddr SA;
-
 /* Persistent state for the robust I/O (Rio) package */
 #define RIO_BUFSIZE 8192
 typedef struct {
@@ -88,10 +85,6 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp)
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function)
                        __attribute__ ((noreturn));
-
-/* POSIX semaphore wrappers */
-void P(sem_t *sem);
-void V(sem_t *sem);
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);
