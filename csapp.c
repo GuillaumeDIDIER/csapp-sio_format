@@ -117,6 +117,23 @@ ssize_t sio_dprintf(int fileno, const char *fmt, ...) {
 }
 
 /**
+ * @brief   Prints formatted output to STDERR_FILENO.
+ * @param fmt      The format string used to determine the output.
+ * @param ...      The arguments for the format string.
+ * @return         The number of bytes written, or -1 on error.
+ *
+ * @remark   This function is async-signal-safe.
+ * @see      sio_vfprintf
+ */
+ssize_t sio_eprintf(const char *fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    ssize_t ret = sio_dprintf(STDERR_FILENO, fmt, argp);
+    va_end(argp);
+    return ret;
+}
+
+/**
  * @brief   Prints formatted output to a file descriptor from a va_list.
  * @param fileno   The file descriptor to print output to.
  * @param fmt      The format string used to determine the output.
