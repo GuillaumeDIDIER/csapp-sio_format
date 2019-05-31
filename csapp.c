@@ -108,7 +108,7 @@ ssize_t sio_printf(const char *fmt, ...) {
  * @remark   This function is async-signal-safe.
  * @see      sio_vfprintf
  */
-ssize_t sio_fprintf(int fileno, const char *fmt, ...) {
+ssize_t sio_dprintf(int fileno, const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
     ssize_t ret = sio_vfprintf(fileno, fmt, argp);
@@ -341,7 +341,7 @@ ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
 /* Async-signal-safe assertion support*/
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function) {
-    sio_fprintf(STDERR_FILENO,
+    sio_dprintf(STDERR_FILENO,
                 "%s: %s:%u: %s: Assertion `%s' failed.\n",
                 __progname, file, line, function, assertion);
     abort();
