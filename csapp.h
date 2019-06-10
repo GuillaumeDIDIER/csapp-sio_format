@@ -43,9 +43,11 @@
 #include <stddef.h>                     /* ssize_t */
 #include <stdarg.h>                     /* va_list */
 #include <semaphore.h>                  /* sem_t */
-#include <signal.h>
 #include <sys/types.h>                  /* struct sockaddr */
 #include <sys/socket.h>                 /* struct sockaddr */
+#include <signal.h>
+#include <sys/stat.h>
+#include <string.h>
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 #define DEF_MODE   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH

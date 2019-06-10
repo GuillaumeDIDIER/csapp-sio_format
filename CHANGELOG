@@ -3,6 +3,7 @@
    - Renamed sio_vfprintf to sio_vdprintf
    - Added sio_eprintf which printf to STDERR_FILENO
    - Added Signal back with (sio_eprintf; _exit) instead of unix_error
+   - Added some includes back to csapp.h: sys/stat.h, string.h
 
  Updated 03/2019 khg:
    - Remove all CSAPP error-checking wrapper functions
