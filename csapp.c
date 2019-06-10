@@ -19,7 +19,6 @@
 #include <sys/types.h>                  /* struct sockaddr */
 #include <sys/socket.h>                 /* struct sockaddr */
 
-
 /*************************************************************
  * The Sio (Signal-safe I/O) package - simple reentrant output
  * functions that are safe for signal handlers.
@@ -364,7 +363,30 @@ void __sio_assert_fail(const char *assertion, const char *file,
     abort();
 }
 
+/**
+ * @brief   Wrapper for the new sigaction interface. Exits on error.
+ * @param signum    Signal to set handler for.
+ * @param handler   Handler function.
+ *
+ * @return  Previous disposition of the signal.
+ */
+/* $begin sigaction */
+handler_t *Signal(int signum, handler_t *handler) {
+    struct sigaction action, old_action;
 
+    action.sa_handler = handler;
+    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
+    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
+
+    if (sigaction(signum, &action, &old_action) < 0) {
+        sio_eprintf("Signal error");
+        _exit(1);
+    }
+
+    return old_action.sa_handler;
+}
+
+/* $end sigaction */
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/

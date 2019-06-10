@@ -43,6 +43,7 @@
 #include <stddef.h>                     /* ssize_t */
 #include <stdarg.h>                     /* va_list */
 #include <semaphore.h>                  /* sem_t */
+#include <signal.h>
 #include <sys/types.h>                  /* struct sockaddr */
 #include <sys/socket.h>                 /* struct sockaddr */
 
@@ -68,6 +69,10 @@ extern char *__progname;
 #define MAXLINE  8192  /* Max text line length */
 #define MAXBUF   8192  /* Max I/O buffer size */
 #define LISTENQ  1024  /* Second argument to listen() */
+
+/* Signal wrappers */
+typedef void handler_t(int);
+handler_t *Signal(int signum, handler_t *handler);
 
 /* Sio (Signal-safe I/O) routines */
 ssize_t sio_printf(const char *fmt, ...)
