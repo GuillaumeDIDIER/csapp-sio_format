@@ -88,12 +88,12 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
  * @return      The number of bytes written, or -1 on error.
  *
  * @remark   This function is async-signal-safe.
- * @see      sio_vfprintf
+ * @see      sio_vdprintf
  */
 ssize_t sio_printf(const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
-    ssize_t ret = sio_vfprintf(STDOUT_FILENO, fmt, argp);
+    ssize_t ret = sio_vdprintf(STDOUT_FILENO, fmt, argp);
     va_end(argp);
     return ret;
 }
@@ -106,12 +106,12 @@ ssize_t sio_printf(const char *fmt, ...) {
  * @return         The number of bytes written, or -1 on error.
  *
  * @remark   This function is async-signal-safe.
- * @see      sio_vfprintf
+ * @see      sio_vdprintf
  */
 ssize_t sio_dprintf(int fileno, const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
-    ssize_t ret = sio_vfprintf(fileno, fmt, argp);
+    ssize_t ret = sio_vdprintf(fileno, fmt, argp);
     va_end(argp);
     return ret;
 }
@@ -123,7 +123,7 @@ ssize_t sio_dprintf(int fileno, const char *fmt, ...) {
  * @return         The number of bytes written, or -1 on error.
  *
  * @remark   This function is async-signal-safe.
- * @see      sio_vfprintf
+ * @see      sio_vdprintf
  */
 ssize_t sio_eprintf(const char *fmt, ...) {
     va_list argp;
@@ -142,7 +142,7 @@ ssize_t sio_eprintf(const char *fmt, ...) {
  *
  * @remark   This function is async-signal-safe.
  *
- * This is a reentrant and async-signal-safe implementation of vfprintf, used
+ * This is a reentrant and async-signal-safe implementation of vdprintf, used
  * to implement the associated formatted sio functions.
  *
  * This function writes directly to a file descriptor (using the `rio_writen`
@@ -154,7 +154,7 @@ ssize_t sio_eprintf(const char *fmt, ...) {
  *  -  Int types: %d, %i, %u, %x, %o (with size specifiers l, z)
  *  -  Others: %c, %s, %%, %p
  */
-ssize_t sio_vfprintf(int fileno, const char *fmt, va_list argp) {
+ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
     size_t pos = 0;
     ssize_t num_written = 0;
 
