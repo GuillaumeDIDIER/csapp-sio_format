@@ -2,12 +2,14 @@ CC = gcc
 CFLAGS = -Og -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700
 LDLIBS = -lpthread
 
-FILES = empty_test
+FILES = empty_test test_sio_assert test_sio_printf
 
 .PHONY: all
 all: $(FILES)
 
 empty_test: empty_test.o csapp.o
+test_sio_assert: test_sio_assert.o csapp.o
+test_sio_printf: test_sio_printf.o csapp.o
 
 .PHONY: format
 format: csapp.c csapp.h
