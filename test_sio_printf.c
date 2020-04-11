@@ -1,6 +1,7 @@
 #include "csapp.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <limits.h>
 
 int main(void) {
   {
@@ -10,10 +11,10 @@ int main(void) {
     sio_printf("\nok%rdlol%r\n");
     sio_printf("char %c string %s percent %%\n", 'a', "abc");
 
-    int big_int = (1 << 31);
+    int big_int = INT_MIN;
     printf("int size: %d %u %x\n", big_int, big_int, big_int);
 
-    long big_long = (1L << 63);
+    long big_long = LONG_MIN;
     sio_printf("long size: %ld %lu %lx\n", big_long, big_long, big_long);
 
     size_t big_size = ((size_t) 1) << 63;
@@ -40,10 +41,10 @@ int main(void) {
     printf("\nok%rdlol%r\n");
     printf("char %c string %s percent %%\n", 'a', "abc");
 
-    int big_int = (1 << 31);
+    int big_int = INT_MIN;
     printf("int size: %d %u %x\n", big_int, big_int, big_int);
 
-    long big_long = (1L << 63);
+    long big_long = LONG_MIN;
     printf("long size: %ld %lu %lx\n", big_long, big_long, big_long);
 
     size_t big_size = ((size_t) 1) << 63;

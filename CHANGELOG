@@ -1,3 +1,10 @@
+ Updated 04/2020 khg:
+   - Formatted with clang-format
+   - Made includes minimal again (removed sys/stat.h, string.h)
+   - Add Malloc family back, which was already in the proxylab version
+   - Remove "#define _XOPEN_SOURCE 700": must include in CFLAGS instead
+     This would fail if other headers were included before csapp.h
+
  Updated 06/2019 urvia:
    - Renamed sio_fprintf to sio_dprintf
    - Renamed sio_vfprintf to sio_vdprintf

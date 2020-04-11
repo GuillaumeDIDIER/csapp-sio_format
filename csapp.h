@@ -35,10 +35,8 @@
  * to use these wrapper functions inside of signal handlers.
  */
 
-#ifndef __CSAPP_H__
-#define __CSAPP_H__
-
-#define _XOPEN_SOURCE 700
+#ifndef CSAPP_H
+#define CSAPP_H
 
 #include <stdarg.h>    /* va_list */
 #include <stddef.h>    /* size_t */
@@ -103,4 +101,4 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 int open_clientfd(const char *hostname, const char *port);
 int open_listenfd(const char *port);
 
-#endif /* __CSAPP_H__ */
+#endif /* CSAPP_H */

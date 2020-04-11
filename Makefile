@@ -1,5 +1,6 @@
-CC = gcc
-CFLAGS = -Og -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700
+CC = clang
+CFLAGS = -Og -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
+         -Weverything -Wno-disabled-macro-expansion -Wno-padded
 LDLIBS = -lpthread
 
 FILES = empty_test test_sio_assert test_sio_printf

@@ -69,9 +69,9 @@ static size_t write_digits(uintmax_t v, char s[], unsigned char b) {
     do {
         unsigned char c = v % b;
         if (c < 10) {
-            s[i++] = c + '0';
+            s[i++] = (char)(c + '0');
         } else {
-            s[i++] = c - 10 + 'a';
+            s[i++] = (char)(c - 10 + 'a');
         }
     } while ((v /= b) > 0);
     return i;
@@ -84,10 +84,10 @@ static size_t intmax_to_string(intmax_t v, char s[], unsigned char b) {
     size_t len;
 
     if (neg) {
-        len = write_digits(-v, s, b);
+        len = write_digits((uintmax_t)-v, s, b);
         s[len++] = '-';
     } else {
-        len = write_digits(v, s, b);
+        len = write_digits((uintmax_t)v, s, b);
     }
 
     s[len] = '\0';
@@ -362,7 +362,7 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
 
         // Write output
         if (len > 0) {
-            ssize_t ret = rio_writen(fileno, (void *)str, len);
+            ssize_t ret = rio_writen(fileno, (const void *)str, len);
             if (ret < 0 || (size_t)ret != len) {
                 return -1;
             }
@@ -445,10 +445,10 @@ ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
         } else if (nread == 0) {
             break; /* EOF */
         }
-        nleft -= nread;
+        nleft -= (size_t)nread;
         bufp += nread;
     }
-    return n - nleft; /* Return >= 0 */
+    return (ssize_t)(n - nleft); /* Return >= 0 */
 }
 
 /*
@@ -468,10 +468,10 @@ ssize_t rio_writen(int fd, const void *usrbuf, size_t n) {
             /* Interrupted by sig handler return, call write() again */
             nwritten = 0;
         }
-        nleft -= nwritten;
+        nleft -= (size_t)nwritten;
         bufp += nwritten;
     }
-    return n;
+    return (ssize_t)n;
 }
 
 /*
@@ -483,7 +483,7 @@ ssize_t rio_writen(int fd, const void *usrbuf, size_t n) {
  *    read() if the internal buffer is empty.
  */
 static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
-    int cnt;
+    size_t cnt;
 
     while (rp->rio_cnt <= 0) { /* Refill if buf is empty */
         rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
@@ -503,12 +503,12 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
     cnt = n;
     if ((size_t)rp->rio_cnt < n) {
-        cnt = rp->rio_cnt;
+        cnt = (size_t)rp->rio_cnt;
     }
     memcpy(usrbuf, rp->rio_bufptr, cnt);
     rp->rio_bufptr += cnt;
     rp->rio_cnt -= cnt;
-    return cnt;
+    return (ssize_t)cnt;
 }
 
 /*
@@ -534,10 +534,10 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
         } else if (nread == 0) {
             break; /* EOF */
         }
-        nleft -= nread;
+        nleft -= (size_t)nread;
         bufp += nread;
     }
-    return (n - nleft); /* return >= 0 */
+    return (ssize_t)(n - nleft); /* return >= 0 */
 }
 
 /*
@@ -545,7 +545,7 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
  */
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
     size_t n;
-    int rc;
+    ssize_t rc;
     char c, *bufp = usrbuf;
 
     for (n = 1; n < maxlen; n++) {
@@ -566,7 +566,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
         }
     }
     *bufp = 0;
-    return n - 1;
+    return (ssize_t)(n - 1);
 }
 
 /********************************
