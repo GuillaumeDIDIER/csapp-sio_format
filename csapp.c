@@ -127,7 +127,7 @@ ssize_t sio_dprintf(int fileno, const char *fmt, ...) {
 ssize_t sio_eprintf(const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
-    ssize_t ret = sio_dprintf(STDERR_FILENO, fmt, argp);
+    ssize_t ret = sio_vdprintf(STDERR_FILENO, fmt, argp);
     va_end(argp);
     return ret;
 }
