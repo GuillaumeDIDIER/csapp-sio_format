@@ -79,7 +79,7 @@ ssize_t sio_dprintf(int fileno, const char *fmt, ...)
 ssize_t sio_eprintf(const char *fmt, ...)
   __attribute__ ((format (printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
-  __attribute__ ((format (printf, 2, 3)));
+  __attribute__ ((format (printf, 2, 0)));
 
 #define sio_assert(expr) \
     ((expr) ? \
