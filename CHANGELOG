@@ -4,6 +4,7 @@
    - Add Malloc family back, which was already in the proxylab version
    - Remove "#define _XOPEN_SOURCE 700": must include in CFLAGS instead
      This would fail if other headers were included before csapp.h
+   - Print null string as (null) instead of segfaulting
 
  Updated 06/2019 urvia:
    - Renamed sio_fprintf to sio_dprintf

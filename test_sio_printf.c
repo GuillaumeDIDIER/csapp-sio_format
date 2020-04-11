@@ -29,6 +29,7 @@ int main(void) {
 
     sio_printf("octal: %o %lo %zo, %o %lo %zo\n", 0, (long) 0, (size_t) 0, big_int, big_long, big_size);
     sio_printf("pointer: %p %p %p\n", NULL, (void *) 0x400640, (void *) -1);
+    sio_printf("string: %s %s\n", NULL, "hola");
     sio_printf("---------------------------------------------\n");
   }
 
@@ -59,6 +60,7 @@ int main(void) {
 
     printf("octal: %o %lo %zo, %o %lo %zo\n", 0, (long) 0, (size_t) 0, big_int, big_long, big_size);
     printf("pointer: %p %p %p\n", NULL, (void *) 0x400640, (void *) -1);
+    printf("string: %s %s\n", NULL, "hola");
     printf("---------------------------------------------\n");
   }
 

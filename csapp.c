@@ -215,6 +215,9 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
             // String format
             case 's':
                 str = va_arg(argp, char *);
+                if (str == NULL) {
+                    str = "(null)";
+                }
                 len = strlen(str);
                 handled = true;
                 pos += 2;
