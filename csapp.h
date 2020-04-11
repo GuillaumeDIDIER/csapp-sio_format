@@ -40,14 +40,9 @@
 
 #define _XOPEN_SOURCE 700
 
-#include <stddef.h>                     /* ssize_t */
+#include <stddef.h>                     /* size_t */
+#include <sys/types.h>                  /* ssize_t */
 #include <stdarg.h>                     /* va_list */
-#include <semaphore.h>                  /* sem_t */
-#include <sys/types.h>                  /* struct sockaddr */
-#include <sys/socket.h>                 /* struct sockaddr */
-#include <signal.h>
-#include <sys/stat.h>
-#include <string.h>
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 #define DEF_MODE   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
@@ -84,7 +79,7 @@ ssize_t sio_dprintf(int fileno, const char *fmt, ...)
 ssize_t sio_eprintf(const char *fmt, ...)
   __attribute__ ((format (printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
-  __attribute__ ((format (printf, 2, 0)));
+  __attribute__ ((format (printf, 2, 3)));
 
 #define sio_assert(expr) \
     ((expr) ? \
@@ -94,6 +89,12 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function)
                        __attribute__ ((noreturn));
+
+/* Dynamic storage allocation wrappers */
+void *Malloc(size_t size);
+void *Realloc(void *ptr, size_t size);
+void *Calloc(size_t nmemb, size_t size);
+void Free(void *ptr);
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);

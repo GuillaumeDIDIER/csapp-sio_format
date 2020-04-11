@@ -18,6 +18,34 @@
 #include <netdb.h>                      /* freeaddrinfo() */
 #include <sys/types.h>                  /* struct sockaddr */
 #include <sys/socket.h>                 /* struct sockaddr */
+#include <signal.h>                     /* struct sigaction */
+
+/************************************
+ * Wrappers for Unix signal functions
+ ***********************************/
+
+/**
+ * @brief   Wrapper for the new sigaction interface. Exits on error.
+ * @param signum    Signal to set handler for.
+ * @param handler   Handler function.
+ *
+ * @return  Previous disposition of the signal.
+ */
+handler_t *Signal(int signum, handler_t *handler) {
+  struct sigaction action, old_action;
+
+  action.sa_handler = handler;
+  sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
+  action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
+
+  if (sigaction(signum, &action, &old_action) < 0) {
+    perror("Signal error");
+    exit(1);
+  }
+
+  return old_action.sa_handler;
+}
+
 
 /*************************************************************
  * The Sio (Signal-safe I/O) package - simple reentrant output
@@ -363,30 +391,49 @@ void __sio_assert_fail(const char *assertion, const char *file,
     abort();
 }
 
-/**
- * @brief   Wrapper for the new sigaction interface. Exits on error.
- * @param signum    Signal to set handler for.
- * @param handler   Handler function.
- *
- * @return  Previous disposition of the signal.
- */
-/* $begin sigaction */
-handler_t *Signal(int signum, handler_t *handler) {
-    struct sigaction action, old_action;
 
-    action.sa_handler = handler;
-    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
-    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
+/***************************************************
+ * Wrappers for dynamic storage allocation functions
+ ***************************************************/
 
-    if (sigaction(signum, &action, &old_action) < 0) {
-        sio_eprintf("Signal error");
-        _exit(1);
+void *Malloc(size_t size) {
+    void *p;
+
+    if ((p = malloc(size)) == NULL) {
+        perror("Malloc error");
+        exit(1);
     }
 
-    return old_action.sa_handler;
+    return p;
 }
 
-/* $end sigaction */
+void *Realloc(void *ptr, size_t size) {
+    void *p;
+
+    if ((p = realloc(ptr, size)) == NULL) {
+        perror("Realloc error");
+        exit(1);
+    }
+
+    return p;
+}
+
+void *Calloc(size_t nmemb, size_t size) {
+    void *p;
+
+    if ((p = calloc(nmemb, size)) == NULL) {
+        perror("Calloc error");
+        exit(1);
+    }
+
+    return p;
+}
+
+void Free(void *ptr) {
+    free(ptr);
+}
+
+
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/
@@ -548,7 +595,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
  *       -1 with errno set for other errors.
  */
 int open_clientfd(char *hostname, char *port) {
-    int clientfd, rc;
+    int clientfd = -1, rc;
     struct addrinfo hints, *listp, *p;
 
     /* Get a list of potential server addresses */
@@ -602,7 +649,7 @@ int open_clientfd(char *hostname, char *port) {
  */
 int open_listenfd(char *port) {
     struct addrinfo hints, *listp, *p;
-    int listenfd, rc, optval=1;
+    int listenfd = -1, rc, optval=1;
 
     /* Get a list of potential server addresses */
     memset(&hints, 0, sizeof(struct addrinfo));
