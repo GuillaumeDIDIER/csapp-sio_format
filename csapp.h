@@ -94,13 +94,13 @@ void Free(void *ptr);
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);
-ssize_t rio_writen(int fd, void *usrbuf, size_t n);
+ssize_t rio_writen(int fd, const void *usrbuf, size_t n);
 void rio_readinitb(rio_t *rp, int fd);
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 
 /* Reentrant protocol-independent client/server helpers */
-int open_clientfd(char *hostname, char *port);
-int open_listenfd(char *port);
+int open_clientfd(const char *hostname, const char *port);
+int open_listenfd(const char *port);
 
 #endif /* __CSAPP_H__ */

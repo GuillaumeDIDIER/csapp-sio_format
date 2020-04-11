@@ -454,10 +454,10 @@ ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
 /*
  * rio_writen - Robustly write n bytes (unbuffered)
  */
-ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
+ssize_t rio_writen(int fd, const void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nwritten;
-    char *bufp = usrbuf;
+    const char *bufp = usrbuf;
 
     while (nleft > 0) {
         if ((nwritten = write(fd, bufp, nleft)) <= 0) {
@@ -581,7 +581,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
  *       -2 for getaddrinfo error
  *       -1 with errno set for other errors.
  */
-int open_clientfd(char *hostname, char *port) {
+int open_clientfd(const char *hostname, const char *port) {
     int clientfd = -1, rc;
     struct addrinfo hints, *listp, *p;
 
@@ -634,7 +634,7 @@ int open_clientfd(char *hostname, char *port) {
  *       -2 for getaddrinfo error
  *       -1 with errno set for other errors.
  */
-int open_listenfd(char *port) {
+int open_listenfd(const char *port) {
     struct addrinfo hints, *listp, *p;
     int listenfd = -1, rc, optval = 1;
 
