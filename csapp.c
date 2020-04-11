@@ -5,20 +5,20 @@
 
 #include "csapp.h"
 
-#include <stdio.h>                      /* stderr */
-#include <string.h>                     /* memset() */
-#include <stdbool.h>                    /* bool */
-#include <stdlib.h>                     /* abort() */
-#include <stddef.h>                     /* ssize_t */
-#include <stdint.h>                     /* intmax_t */
-#include <stdarg.h>                     /* va_list */
-#include <errno.h>                      /* errno */
-#include <unistd.h>                     /* STDIN_FILENO */
-#include <semaphore.h>                  /* sem_t */
-#include <netdb.h>                      /* freeaddrinfo() */
-#include <sys/types.h>                  /* struct sockaddr */
-#include <sys/socket.h>                 /* struct sockaddr */
-#include <signal.h>                     /* struct sigaction */
+#include <errno.h>      /* errno */
+#include <netdb.h>      /* freeaddrinfo() */
+#include <semaphore.h>  /* sem_t */
+#include <signal.h>     /* struct sigaction */
+#include <stdarg.h>     /* va_list */
+#include <stdbool.h>    /* bool */
+#include <stddef.h>     /* ssize_t */
+#include <stdint.h>     /* intmax_t */
+#include <stdio.h>      /* stderr */
+#include <stdlib.h>     /* abort() */
+#include <string.h>     /* memset() */
+#include <sys/socket.h> /* struct sockaddr */
+#include <sys/types.h>  /* struct sockaddr */
+#include <unistd.h>     /* STDIN_FILENO */
 
 /************************************
  * Wrappers for Unix signal functions
@@ -32,20 +32,19 @@
  * @return  Previous disposition of the signal.
  */
 handler_t *Signal(int signum, handler_t *handler) {
-  struct sigaction action, old_action;
+    struct sigaction action, old_action;
 
-  action.sa_handler = handler;
-  sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
-  action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
+    action.sa_handler = handler;
+    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */
+    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */
 
-  if (sigaction(signum, &action, &old_action) < 0) {
-    perror("Signal error");
-    exit(1);
-  }
+    if (sigaction(signum, &action, &old_action) < 0) {
+        perror("Signal error");
+        exit(1);
+    }
 
-  return old_action.sa_handler;
+    return old_action.sa_handler;
 }
-
 
 /*************************************************************
  * The Sio (Signal-safe I/O) package - simple reentrant output
@@ -71,8 +70,7 @@ static size_t write_digits(uintmax_t v, char s[], unsigned char b) {
         unsigned char c = v % b;
         if (c < 10) {
             s[i++] = c + '0';
-        }
-        else {
+        } else {
             s[i++] = c - 10 + 'a';
         }
     } while ((v /= b) > 0);
@@ -88,8 +86,7 @@ static size_t intmax_to_string(intmax_t v, char s[], unsigned char b) {
     if (neg) {
         len = write_digits(-v, s, b);
         s[len++] = '-';
-    }
-    else {
+    } else {
         len = write_digits(v, s, b);
     }
 
@@ -187,8 +184,8 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
 
     while (fmt[pos] != '\0') {
         // String output of this iteration
-        const char *str = NULL;  // String to output
-        size_t len = 0;  // Length of string to output
+        const char *str = NULL; // String to output
+        size_t len = 0;         // Length of string to output
 
         // Mark whether we've matched a format
         bool handled = false;
@@ -207,7 +204,7 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
 
             // Character format
             case 'c':
-                buf[0] = (char) va_arg(argp, int);
+                buf[0] = (char)va_arg(argp, int);
                 buf[1] = '\0';
                 str = buf;
                 len = 1;
@@ -238,10 +235,9 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
                     str = "(nil)";
                     len = strlen(str);
                     handled = true;
-                }
-                else {
+                } else {
                     convert_type = 'p';
-                    convert_value.u = (uintmax_t) (uintptr_t) ptr;
+                    convert_value.u = (uintmax_t)(uintptr_t)ptr;
                 }
                 pos += 2;
                 break;
@@ -251,22 +247,22 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
             case 'd':
             case 'i':
                 convert_type = 'd';
-                convert_value.s = (intmax_t) va_arg(argp, int);
+                convert_value.s = (intmax_t)va_arg(argp, int);
                 pos += 2;
                 break;
             case 'u':
                 convert_type = 'u';
-                convert_value.u = (uintmax_t) va_arg(argp, unsigned);
+                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
                 pos += 2;
                 break;
             case 'x':
                 convert_type = 'x';
-                convert_value.u = (uintmax_t) va_arg(argp, unsigned);
+                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
                 pos += 2;
                 break;
             case 'o':
                 convert_type = 'o';
-                convert_value.u = (uintmax_t) va_arg(argp, unsigned);
+                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
                 pos += 2;
                 break;
 
@@ -276,26 +272,22 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
                 case 'd':
                 case 'i':
                     convert_type = 'd';
-                    convert_value.s =
-                      (intmax_t) va_arg(argp, long);
+                    convert_value.s = (intmax_t)va_arg(argp, long);
                     pos += 3;
                     break;
                 case 'u':
                     convert_type = 'u';
-                    convert_value.u =
-                      (uintmax_t) va_arg(argp, unsigned long);
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
                     pos += 3;
                     break;
                 case 'x':
                     convert_type = 'x';
-                    convert_value.u =
-                      (uintmax_t) va_arg(argp, unsigned long);
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
                     pos += 3;
                     break;
                 case 'o':
                     convert_type = 'o';
-                    convert_value.u =
-                      (uintmax_t) va_arg(argp, unsigned long);
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
                     pos += 3;
                     break;
                 }
@@ -307,27 +299,26 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
                 case 'd':
                 case 'i':
                     convert_type = 'd';
-                    convert_value.s = (intmax_t) va_arg(argp, ssize_t);
+                    convert_value.s = (intmax_t)va_arg(argp, ssize_t);
                     pos += 3;
                     break;
                 case 'u':
                     convert_type = 'u';
-                    convert_value.u = (uintmax_t) va_arg(argp, size_t);
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
                     pos += 3;
                     break;
                 case 'x':
                     convert_type = 'x';
-                    convert_value.u = (uintmax_t) va_arg(argp, size_t);
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
                     pos += 3;
                     break;
                 case 'o':
                     convert_type = 'o';
-                    convert_value.u = (uintmax_t) va_arg(argp, size_t);
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
                     pos += 3;
                     break;
                 }
             }
-
             }
 
             // Convert int type to string
@@ -371,8 +362,8 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
 
         // Write output
         if (len > 0) {
-            ssize_t ret = rio_writen(fileno, (void *) str, len);
-            if (ret < 0 || (size_t) ret != len) {
+            ssize_t ret = rio_writen(fileno, (void *)str, len);
+            if (ret < 0 || (size_t)ret != len) {
                 return -1;
             }
             num_written += len;
@@ -385,12 +376,10 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
 /* Async-signal-safe assertion support*/
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function) {
-    sio_dprintf(STDERR_FILENO,
-                "%s: %s:%u: %s: Assertion `%s' failed.\n",
+    sio_dprintf(STDERR_FILENO, "%s: %s:%u: %s: Assertion `%s' failed.\n",
                 __progname, file, line, function, assertion);
     abort();
 }
-
 
 /***************************************************
  * Wrappers for dynamic storage allocation functions
@@ -433,7 +422,6 @@ void Free(void *ptr) {
     free(ptr);
 }
 
-
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/
@@ -449,18 +437,18 @@ ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
     while (nleft > 0) {
         if ((nread = read(fd, bufp, nleft)) < 0) {
             if (errno != EINTR) {
-                return -1;  /* errno set by read() */
+                return -1; /* errno set by read() */
             }
 
             /* Interrupted by sig handler return, call read() again */
             nread = 0;
         } else if (nread == 0) {
-            break;                  /* EOF */
+            break; /* EOF */
         }
         nleft -= nread;
         bufp += nread;
     }
-    return n - nleft;             /* Return >= 0 */
+    return n - nleft; /* Return >= 0 */
 }
 
 /*
@@ -474,7 +462,7 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
     while (nleft > 0) {
         if ((nwritten = write(fd, bufp, nleft)) <= 0) {
             if (errno != EINTR) {
-                return -1;       /* errno set by write() */
+                return -1; /* errno set by write() */
             }
 
             /* Interrupted by sig handler return, call write() again */
@@ -485,7 +473,6 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
     }
     return n;
 }
-
 
 /*
  * rio_read - This is a wrapper for the Unix read() function that
@@ -498,24 +485,24 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n) {
 static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     int cnt;
 
-    while (rp->rio_cnt <= 0) {      /* Refill if buf is empty */
+    while (rp->rio_cnt <= 0) { /* Refill if buf is empty */
         rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
         if (rp->rio_cnt < 0) {
             if (errno != EINTR) {
-                return -1;          /* errno set by read() */
+                return -1; /* errno set by read() */
             }
 
             /* Interrupted by sig handler return, nothing to do */
         } else if (rp->rio_cnt == 0) {
-            return 0;               /* EOF */
+            return 0; /* EOF */
         } else {
-            rp->rio_bufptr = rp->rio_buf;   /* Reset buffer ptr */
+            rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
         }
     }
 
     /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
     cnt = n;
-    if ((size_t) rp->rio_cnt < n) {
+    if ((size_t)rp->rio_cnt < n) {
         cnt = rp->rio_cnt;
     }
     memcpy(usrbuf, rp->rio_bufptr, cnt);
@@ -543,14 +530,14 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) {
 
     while (nleft > 0) {
         if ((nread = rio_read(rp, bufp, nleft)) < 0) {
-            return -1;          /* errno set by read() */
+            return -1; /* errno set by read() */
         } else if (nread == 0) {
-            break;              /* EOF */
+            break; /* EOF */
         }
         nleft -= nread;
         bufp += nread;
     }
-    return (n - nleft);         /* return >= 0 */
+    return (n - nleft); /* return >= 0 */
 }
 
 /*
@@ -572,14 +559,14 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
             if (n == 1) {
                 return 0; /* EOF, no data read */
             } else {
-                break;    /* EOF, some data was read */
+                break; /* EOF, some data was read */
             }
         } else {
-            return -1;    /* Error */
+            return -1; /* Error */
         }
     }
     *bufp = 0;
-    return n-1;
+    return n - 1;
 }
 
 /********************************
@@ -600,12 +587,12 @@ int open_clientfd(char *hostname, char *port) {
 
     /* Get a list of potential server addresses */
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_socktype = SOCK_STREAM;  /* Open a connection */
-    hints.ai_flags = AI_NUMERICSERV;  /* ... using a numeric port arg. */
-    hints.ai_flags |= AI_ADDRCONFIG;  /* Recommended for connections */
+    hints.ai_socktype = SOCK_STREAM; /* Open a connection */
+    hints.ai_flags = AI_NUMERICSERV; /* ... using a numeric port arg. */
+    hints.ai_flags |= AI_ADDRCONFIG; /* Recommended for connections */
     if ((rc = getaddrinfo(hostname, port, &hints, &listp)) != 0) {
-        fprintf(stderr, "getaddrinfo failed (%s:%s): %s\n",
-                hostname, port, gai_strerror(rc));
+        fprintf(stderr, "getaddrinfo failed (%s:%s): %s\n", hostname, port,
+                gai_strerror(rc));
         return -2;
     }
 
@@ -632,9 +619,9 @@ int open_clientfd(char *hostname, char *port) {
 
     /* Clean up */
     freeaddrinfo(listp);
-    if (!p) {   /* All connects failed */
+    if (!p) { /* All connects failed */
         return -1;
-    } else {      /* The last connect succeeded */
+    } else { /* The last connect succeeded */
         return clientfd;
     }
 }
@@ -649,7 +636,7 @@ int open_clientfd(char *hostname, char *port) {
  */
 int open_listenfd(char *port) {
     struct addrinfo hints, *listp, *p;
-    int listenfd = -1, rc, optval=1;
+    int listenfd = -1, rc, optval = 1;
 
     /* Get a list of potential server addresses */
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -657,8 +644,8 @@ int open_listenfd(char *port) {
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG; /* ... on any IP address */
     hints.ai_flags |= AI_NUMERICSERV;            /* ... using port number */
     if ((rc = getaddrinfo(NULL, port, &hints, &listp)) != 0) {
-        fprintf(stderr, "getaddrinfo failed (port %s): %s\n",
-                port, gai_strerror(rc));
+        fprintf(stderr, "getaddrinfo failed (port %s): %s\n", port,
+                gai_strerror(rc));
         return -2;
     }
 
@@ -667,12 +654,12 @@ int open_listenfd(char *port) {
         /* Create a socket descriptor */
         listenfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (listenfd < 0) {
-            continue;  /* Socket failed, try the next */
+            continue; /* Socket failed, try the next */
         }
 
         /* Eliminates "Address already in use" error from bind */
-        setsockopt(listenfd, SOL_SOCKET,
-                SO_REUSEADDR, (const void *) &optval , sizeof(int));
+        setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval,
+                   sizeof(int));
 
         /* Bind the descriptor to the address */
         if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) {

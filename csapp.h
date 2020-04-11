@@ -40,13 +40,13 @@
 
 #define _XOPEN_SOURCE 700
 
-#include <stddef.h>                     /* size_t */
-#include <sys/types.h>                  /* ssize_t */
-#include <stdarg.h>                     /* va_list */
+#include <stdarg.h>    /* va_list */
+#include <stddef.h>    /* size_t */
+#include <sys/types.h> /* ssize_t */
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
-#define DEF_MODE   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
-#define DEF_UMASK  S_IWGRP|S_IWOTH
+#define DEF_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
+#define DEF_UMASK S_IWGRP | S_IWOTH
 
 /* Persistent state for the robust I/O (Rio) package */
 #define RIO_BUFSIZE 8192
@@ -63,32 +63,28 @@ extern char **environ; /* Defined by libc */
 extern char *__progname;
 
 /* Misc constants */
-#define MAXLINE  8192  /* Max text line length */
-#define MAXBUF   8192  /* Max I/O buffer size */
-#define LISTENQ  1024  /* Second argument to listen() */
+#define MAXLINE 8192 /* Max text line length */
+#define MAXBUF 8192  /* Max I/O buffer size */
+#define LISTENQ 1024 /* Second argument to listen() */
 
 /* Signal wrappers */
 typedef void handler_t(int);
 handler_t *Signal(int signum, handler_t *handler);
 
 /* Sio (Signal-safe I/O) routines */
-ssize_t sio_printf(const char *fmt, ...)
-  __attribute__ ((format (printf, 1, 2)));
+ssize_t sio_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_dprintf(int fileno, const char *fmt, ...)
-  __attribute__ ((format (printf, 2, 3)));
-ssize_t sio_eprintf(const char *fmt, ...)
-  __attribute__ ((format (printf, 1, 2)));
+    __attribute__((format(printf, 2, 3)));
+ssize_t sio_eprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
-  __attribute__ ((format (printf, 2, 0)));
+    __attribute__((format(printf, 2, 0)));
 
-#define sio_assert(expr) \
-    ((expr) ? \
-     (void) 0 : \
-     __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
+#define sio_assert(expr)                                                       \
+    ((expr) ? (void)0 : __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
 
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function)
-                       __attribute__ ((noreturn));
+    __attribute__((noreturn));
 
 /* Dynamic storage allocation wrappers */
 void *Malloc(size_t size);
