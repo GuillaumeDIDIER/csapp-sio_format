@@ -1,7 +1,12 @@
-CC = clang
-CFLAGS = -Og -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
+CC = $(LLVM_PATH)clang
+CFLAGS = -Og -g -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
          -Weverything -Wno-disabled-macro-expansion -Wno-padded
 LDLIBS = -lpthread
+
+LLVM_PATH = /usr/local/depot/llvm-7.0/bin/
+ifneq (,$(wildcard /usr/lib/llvm-7/bin/))
+  LLVM_PATH = /usr/lib/llvm-7/bin/
+endif
 
 FILES = empty_test test_sio_assert test_sio_printf
 
