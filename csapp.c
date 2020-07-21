@@ -378,47 +378,6 @@ void __sio_assert_fail(const char *assertion, const char *file,
     abort();
 }
 
-/***************************************************
- * Wrappers for dynamic storage allocation functions
- ***************************************************/
-
-void *Malloc(size_t size) {
-    void *p;
-
-    if ((p = malloc(size)) == NULL) {
-        perror("Malloc error");
-        exit(1);
-    }
-
-    return p;
-}
-
-void *Realloc(void *ptr, size_t size) {
-    void *p;
-
-    if ((p = realloc(ptr, size)) == NULL) {
-        perror("Realloc error");
-        exit(1);
-    }
-
-    return p;
-}
-
-void *Calloc(size_t nmemb, size_t size) {
-    void *p;
-
-    if ((p = calloc(nmemb, size)) == NULL) {
-        perror("Calloc error");
-        exit(1);
-    }
-
-    return p;
-}
-
-void Free(void *ptr) {
-    free(ptr);
-}
-
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/

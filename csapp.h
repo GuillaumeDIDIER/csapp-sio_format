@@ -84,12 +84,6 @@ void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function)
     __attribute__((noreturn));
 
-/* Dynamic storage allocation wrappers */
-void *Malloc(size_t size);
-void *Realloc(void *ptr, size_t size);
-void *Calloc(size_t nmemb, size_t size);
-void Free(void *ptr);
-
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);
 ssize_t rio_writen(int fd, const void *usrbuf, size_t n);
