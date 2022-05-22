@@ -77,6 +77,24 @@ ssize_t sio_eprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
     __attribute__((format(printf, 2, 0)));
 
+typedef ssize_t (*sio_output_function)(void*, char, size_t, const char*, size_t);
+ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+ssize_t sio_vformat(sio_output_function output, void* output_state, const char* fmt, va_list argp) __attribute__((format(printf, 3, 0)));
+
+
+typedef struct {
+    int fileno;
+} sio_write_output_t;
+
+ssize_t sio_write_output(void* state, char padding, size_t count, const char* data, size_t len);
+
+typedef struct {
+    char* buffer;
+    size_t remaining;
+} sio_buffer_output_t;
+
+ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* data, size_t len);
+
 #define sio_assert(expr)                                                       \
     ((expr) ? (void)0 : __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
 

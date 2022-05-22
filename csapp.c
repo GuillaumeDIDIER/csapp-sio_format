@@ -163,166 +163,6 @@ struct _format_data {
     char buf[128];   // Backing buffer to use for conversions
 };
 
-static size_t _handle_format(const char *fmt, va_list argp,
-                             struct _format_data *data) {
-    size_t pos = 0;
-    bool handled = false;
-
-    if (fmt[0] == '%') {
-        // Marked if we need to convert an integer
-        char convert_type = '\0';
-        union {
-            uintmax_t u;
-            intmax_t s;
-        } convert_value = {.u = 0};
-
-        switch (fmt[1]) {
-
-        // Character format
-        case 'c': {
-            data->buf[0] = (char)va_arg(argp, int);
-            data->buf[1] = '\0';
-            data->str = data->buf;
-            data->len = 1;
-            handled = true;
-            pos += 2;
-            break;
-        }
-
-        // String format
-        case 's': {
-            data->str = va_arg(argp, char *);
-            if (data->str == NULL) {
-                data->str = "(null)";
-            }
-            data->len = strlen(data->str);
-            handled = true;
-            pos += 2;
-            break;
-        }
-
-        // Escaped %
-        case '%': {
-            data->str = fmt;
-            data->len = 1;
-            handled = true;
-            pos += 2;
-            break;
-        }
-
-        // Pointer type
-        case 'p': {
-            void *ptr = va_arg(argp, void *);
-            if (ptr == NULL) {
-                data->str = "(nil)";
-                data->len = strlen(data->str);
-                handled = true;
-            } else {
-                convert_type = 'p';
-                convert_value.u = (uintmax_t)(uintptr_t)ptr;
-            }
-            pos += 2;
-            break;
-        }
-
-        // Int types with no format specifier
-        case 'd':
-        case 'i':
-            convert_type = 'd';
-            convert_value.s = (intmax_t)va_arg(argp, int);
-            pos += 2;
-            break;
-        case 'u':
-        case 'x':
-        case 'o':
-            convert_type = fmt[1];
-            convert_value.u = (uintmax_t)va_arg(argp, unsigned);
-            pos += 2;
-            break;
-
-        // Int types with size format: long
-        case 'l': {
-            switch (fmt[2]) {
-            case 'd':
-            case 'i':
-                convert_type = 'd';
-                convert_value.s = (intmax_t)va_arg(argp, long);
-                pos += 3;
-                break;
-            case 'u':
-            case 'x':
-            case 'o':
-                convert_type = fmt[2];
-                convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
-                pos += 3;
-                break;
-            }
-            break;
-        }
-
-        // Int types with size format: size_t
-        case 'z': {
-            switch (fmt[2]) {
-            case 'd':
-            case 'i':
-                convert_type = 'd';
-                convert_value.s = (intmax_t)(uintmax_t)va_arg(argp, size_t);
-                pos += 3;
-                break;
-            case 'u':
-            case 'x':
-            case 'o':
-                convert_type = fmt[2];
-                convert_value.u = (uintmax_t)va_arg(argp, size_t);
-                pos += 3;
-                break;
-            }
-            break;
-        }
-        }
-
-        // Convert int type to string
-        switch (convert_type) {
-        case 'd':
-            data->str = data->buf;
-            data->len = intmax_to_string(convert_value.s, data->buf, 10);
-            handled = true;
-            break;
-        case 'u':
-            data->str = data->buf;
-            data->len = uintmax_to_string(convert_value.u, data->buf, 10);
-            handled = true;
-            break;
-        case 'x':
-            data->str = data->buf;
-            data->len = uintmax_to_string(convert_value.u, data->buf, 16);
-            handled = true;
-            break;
-        case 'o':
-            data->str = data->buf;
-            data->len = uintmax_to_string(convert_value.u, data->buf, 8);
-            handled = true;
-            break;
-        case 'p':
-            strcpy(data->buf, "0x");
-            data->str = data->buf;
-            data->len =
-                uintmax_to_string(convert_value.u, data->buf + 2, 16) + 2;
-            handled = true;
-            break;
-        }
-    }
-
-    // Didn't match a format above
-    // Handle block of non-format characters
-    if (!handled) {
-        data->str = fmt;
-        data->len = 1 + strcspn(fmt + 1, "%");
-        pos += data->len;
-    }
-
-    return pos;
-}
 
 /**
  * @brief   Prints formatted output to a file descriptor from a va_list.
@@ -345,6 +185,7 @@ static size_t _handle_format(const char *fmt, va_list argp,
  *  -  Int types: %d, %i, %u, %x, %o (with size specifiers l, z)
  *  -  Others: %c, %s, %%, %p
  */
+#if 0
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
     size_t pos = 0;
     ssize_t num_written = 0;
@@ -354,8 +195,166 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
         struct _format_data data;
         memset(&data, 0, sizeof(data));
 
+        const char *local_fmt = &fmt[pos];
+
+        size_t local_pos = 0;
+        bool handled = false;
+
+        if (local_fmt[0] == '%') {
+            // Marked if we need to convert an integer
+        char convert_type = '\0';
+        union {
+            uintmax_t u;
+            intmax_t s;
+        } convert_value = {.u = 0};
+
+        switch (local_fmt[1]) {
+
+            // Character format
+            case 'c': {
+                data.buf[0] = (char)va_arg(argp, int);
+                data.buf[1] = '\0';
+                data.str = data.buf;
+                data.len = 1;
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // String format
+            case 's': {
+                data.str = va_arg(argp, char *);
+                if (data.str == NULL) {
+                    data.str = "(null)";
+                }
+                data.len = strlen(data.str);
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // Escaped %
+            case '%': {
+                data.str = local_fmt;
+                data.len = 1;
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // Pointer type
+            case 'p': {
+                void *ptr = va_arg(argp, void *);
+                if (ptr == NULL) {
+                    data.str = "(nil)";
+                    data.len = strlen(data.str);
+                    handled = true;
+                } else {
+                    convert_type = 'p';
+                    convert_value.u = (uintmax_t)(uintptr_t)ptr;
+                }
+                local_pos += 2;
+                break;
+            }
+
+            // Int types with no format specifier
+            case 'd':
+            case 'i':
+                convert_type = 'd';
+                convert_value.s = (intmax_t)va_arg(argp, int);
+                local_pos += 2;
+                break;
+            case 'u':
+            case 'x':
+            case 'o':
+                convert_type = local_fmt[1];
+                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
+                local_pos += 2;
+                break;
+
+            // Int types with size format: long
+            case 'l': {
+                switch (local_fmt[2]) {
+                case 'd':
+                case 'i':
+                    convert_type = 'd';
+                    convert_value.s = (intmax_t)va_arg(argp, long);
+                    local_pos += 3;
+                    break;
+                case 'u':
+                case 'x':
+                case 'o':
+                    convert_type = local_fmt[2];
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
+                    local_pos += 3;
+                    break;
+                }
+                break;
+            }
+
+            // Int types with size format: size_t
+            case 'z': {
+                switch (local_fmt[2]) {
+                case 'd':
+                case 'i':
+                    convert_type = 'd';
+                    convert_value.s = (intmax_t)(uintmax_t)va_arg(argp, size_t);
+                    local_pos += 3;
+                    break;
+                case 'u':
+                case 'x':
+                case 'o':
+                    convert_type = local_fmt[2];
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
+                    local_pos += 3;
+                    break;
+                }
+                break;
+            }
+            }
+
+            // Convert int type to string
+            switch (convert_type) {
+            case 'd':
+                data.str = data.buf;
+                data.len = intmax_to_string(convert_value.s, data.buf, 10);
+                handled = true;
+                break;
+            case 'u':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 10);
+                handled = true;
+                break;
+            case 'x':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 16);
+                handled = true;
+                break;
+            case 'o':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 8);
+                handled = true;
+                break;
+            case 'p':
+                strcpy(data.buf, "0x");
+                data.str = data.buf;
+                data.len =
+                    uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
+                handled = true;
+                break;
+            }
+        }
+
+        // Didn't match a format above
+        // Handle block of non-format characters
+        if (!handled) {
+            data.str = local_fmt;
+            data.len = 1 + strcspn(local_fmt + 1, "%");
+            local_pos += data.len;
+        }
+
         // Handle format characters
-        pos += _handle_format(&fmt[pos], argp, &data);
+        pos += local_pos;
 
         // Write output
         if (data.len > 0) {
@@ -365,6 +364,227 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
             }
             num_written += data.len;
         }
+    }
+
+    return num_written;
+}
+#else
+ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
+    sio_write_output_t state;
+    state.fileno = fileno;
+    return sio_vformat(sio_write_output, &state, fmt, argp);
+}
+
+#endif
+
+ssize_t sio_write_output(void* state, char padding, size_t count, const char* data, size_t len) {
+    int fileno = ((sio_write_output_t*)state)->fileno;
+
+    ssize_t num_written = 0;
+
+    // TODO support padding
+
+    if (len > 0) {
+        ssize_t ret = rio_writen(fileno, (const void *)data, len);
+        if (ret < 0 || (size_t)ret != len) {
+            return -1;
+        }
+        num_written += ret;
+    }
+    return num_written;
+}
+
+
+
+ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* data, size_t len) {
+    sio_buffer_output_t* buffer_state = state;
+    return -1;
+}
+
+ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    ssize_t ret = sio_vformat(output, output_state, fmt, argp);
+    va_end(argp);
+    return ret;
+}
+
+ssize_t sio_vformat(sio_output_function output, void* output_state, const char* fmt, va_list argp) {
+    size_t pos = 0;
+    ssize_t num_written = 0; // refactor this name, which no longer reflects the real meaning
+
+    while (fmt[pos] != '\0') {
+        // Int to string conversion
+        struct _format_data data;
+        memset(&data, 0, sizeof(data));
+
+        const char *local_fmt = &fmt[pos];
+
+        size_t local_pos = 0;
+        bool handled = false;
+
+        if (local_fmt[0] == '%') {
+            // Marked if we need to convert an integer
+        char convert_type = '\0';
+        union {
+            uintmax_t u;
+            intmax_t s;
+        } convert_value = {.u = 0};
+
+        switch (local_fmt[1]) {
+
+            // Character format
+            case 'c': {
+                data.buf[0] = (char)va_arg(argp, int);
+                data.buf[1] = '\0';
+                data.str = data.buf;
+                data.len = 1;
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // String format
+            case 's': {
+                data.str = va_arg(argp, char *);
+                if (data.str == NULL) {
+                    data.str = "(null)";
+                }
+                data.len = strlen(data.str);
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // Escaped %
+            case '%': {
+                data.str = local_fmt;
+                data.len = 1;
+                handled = true;
+                local_pos += 2;
+                break;
+            }
+
+            // Pointer type
+            case 'p': {
+                void *ptr = va_arg(argp, void *);
+                if (ptr == NULL) {
+                    data.str = "(nil)";
+                    data.len = strlen(data.str);
+                    handled = true;
+                } else {
+                    convert_type = 'p';
+                    convert_value.u = (uintmax_t)(uintptr_t)ptr;
+                }
+                local_pos += 2;
+                break;
+            }
+
+            // Int types with no format specifier
+            case 'd':
+            case 'i':
+                convert_type = 'd';
+                convert_value.s = (intmax_t)va_arg(argp, int);
+                local_pos += 2;
+                break;
+            case 'u':
+            case 'x':
+            case 'o':
+                convert_type = local_fmt[1];
+                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
+                local_pos += 2;
+                break;
+
+            // Int types with size format: long
+            case 'l': {
+                switch (local_fmt[2]) {
+                case 'd':
+                case 'i':
+                    convert_type = 'd';
+                    convert_value.s = (intmax_t)va_arg(argp, long);
+                    local_pos += 3;
+                    break;
+                case 'u':
+                case 'x':
+                case 'o':
+                    convert_type = local_fmt[2];
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
+                    local_pos += 3;
+                    break;
+                }
+                break;
+            }
+
+            // Int types with size format: size_t
+            case 'z': {
+                switch (local_fmt[2]) {
+                case 'd':
+                case 'i':
+                    convert_type = 'd';
+                    convert_value.s = (intmax_t)(uintmax_t)va_arg(argp, size_t);
+                    local_pos += 3;
+                    break;
+                case 'u':
+                case 'x':
+                case 'o':
+                    convert_type = local_fmt[2];
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
+                    local_pos += 3;
+                    break;
+                }
+                break;
+            }
+            }
+
+            // Convert int type to string
+            switch (convert_type) {
+            case 'd':
+                data.str = data.buf;
+                data.len = intmax_to_string(convert_value.s, data.buf, 10);
+                handled = true;
+                break;
+            case 'u':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 10);
+                handled = true;
+                break;
+            case 'x':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 16);
+                handled = true;
+                break;
+            case 'o':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 8);
+                handled = true;
+                break;
+            case 'p':
+                strcpy(data.buf, "0x");
+                data.str = data.buf;
+                data.len =
+                    uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
+                handled = true;
+                break;
+            }
+        }
+
+        // Didn't match a format above
+        // Handle block of non-format characters
+        if (!handled) {
+            data.str = local_fmt;
+            data.len = 1 + strcspn(local_fmt + 1, "%");
+            local_pos += data.len;
+        }
+
+        // Handle format characters
+        pos += local_pos;
+
+        // Write output
+        ssize_t ret = output(output_state, ' ', 0, data.str, data.len);
+        if (ret < 0) {
+            return -1;
+        }
+        num_written += ret;
     }
 
     return num_written;
