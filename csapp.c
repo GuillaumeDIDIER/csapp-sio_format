@@ -218,7 +218,7 @@ ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
     return ret;
 }
 
-
+#define PADDING_BUF_LEN 128
 
 ssize_t sio_write_output(void* state, char padding, size_t count, const char* data, size_t len) {
     int fileno = ((sio_write_output_t*)state)->fileno;
@@ -226,6 +226,19 @@ ssize_t sio_write_output(void* state, char padding, size_t count, const char* da
     ssize_t num_written = 0;
 
     // TODO support padding
+    char buf[PADDING_BUF_LEN];
+    memset(buf, padding, PADDING_BUF_LEN);
+    while (num_written < count) {
+        size_t padding_len = count - num_written;
+        if (padding_len > PADDING_BUF_LEN) {
+            padding_len = PADDING_BUF_LEN;
+        }
+        ssize_t ret = rio_writen(fileno, (const void *)buf, padding_len);
+        if (ret < 0 || (size_t)ret != padding_len) {
+            return -1;
+        }
+        num_written += ret;
+    }
 
     if (len > 0) {
         ssize_t ret = rio_writen(fileno, (const void *)data, len);
