@@ -16,10 +16,10 @@ int main(void) {
     sio_printf("%zd:%s\n", ret, buffer);
 
     ret = sio_snprintf(buffer4, 1, "%d", 0);
-    sio_printf("%d:%s:%s\n", ret, buffer4, buffer4+1);
+    sio_printf("%zd:%s:%s\n", ret, buffer4, buffer4+1);
 
     ret = sio_snprintf(buffer4+1, 0, "%d", 0);
-    sio_printf("%d:%s\n", ret, buffer4+1);
+    sio_printf("%zd:%s\n", ret, buffer4+1);
 
     ret = sio_snprintf(buffer, 1024, "%d%s%dokokokhi%%lol%d\n", 1000, "<hello>", -22333333, 0);
     sio_printf("%zd:%s\n", ret, buffer);
