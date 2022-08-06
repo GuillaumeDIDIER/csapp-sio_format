@@ -31,6 +31,7 @@ int main(void) {
         sio_printf("pointer: %p %p %p\n", NULL, (void *) 0x400640, (void *) -1);
         sio_printf("string: %s %s\n", NULL, "hola");
         sio_printf("padding:'%*d'\n", 5, 5);
+        sio_printf("negative padding:'%*d'\n", -5, -5);
         sio_printf("---------------------------------------------\n");
     }
 
@@ -63,6 +64,7 @@ int main(void) {
         printf("pointer: %p %p %p\n", NULL, (void *) 0x400640, (void *) -1);
         printf("string: %s %s\n", NULL, "hola");
         printf("padding:'%*d'\n", 5, 5);
+        printf("negative padding:'%*d'\n", -5, -5);
         printf("---------------------------------------------\n");
     }
 

@@ -311,6 +311,10 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
             if (local_fmt[current] == '*') {
                 padded = true;
                 padding = va_arg(argp, int);
+                if (padding < 0) {
+                    padding = 0;
+                    // right padding is unsupported for now
+                }
                 current++;
             }
 
