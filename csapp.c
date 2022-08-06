@@ -185,197 +185,40 @@ struct _format_data {
  *  -  Int types: %d, %i, %u, %x, %o (with size specifiers l, z)
  *  -  Others: %c, %s, %%, %p
  */
-#if 0
-ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
-    size_t pos = 0;
-    ssize_t num_written = 0;
-
-    while (fmt[pos] != '\0') {
-        // Int to string conversion
-        struct _format_data data;
-        memset(&data, 0, sizeof(data));
-
-        const char *local_fmt = &fmt[pos];
-
-        size_t local_pos = 0;
-        bool handled = false;
-
-        if (local_fmt[0] == '%') {
-            // Marked if we need to convert an integer
-        char convert_type = '\0';
-        union {
-            uintmax_t u;
-            intmax_t s;
-        } convert_value = {.u = 0};
-
-        switch (local_fmt[1]) {
-
-            // Character format
-            case 'c': {
-                data.buf[0] = (char)va_arg(argp, int);
-                data.buf[1] = '\0';
-                data.str = data.buf;
-                data.len = 1;
-                handled = true;
-                local_pos += 2;
-                break;
-            }
-
-            // String format
-            case 's': {
-                data.str = va_arg(argp, char *);
-                if (data.str == NULL) {
-                    data.str = "(null)";
-                }
-                data.len = strlen(data.str);
-                handled = true;
-                local_pos += 2;
-                break;
-            }
-
-            // Escaped %
-            case '%': {
-                data.str = local_fmt;
-                data.len = 1;
-                handled = true;
-                local_pos += 2;
-                break;
-            }
-
-            // Pointer type
-            case 'p': {
-                void *ptr = va_arg(argp, void *);
-                if (ptr == NULL) {
-                    data.str = "(nil)";
-                    data.len = strlen(data.str);
-                    handled = true;
-                } else {
-                    convert_type = 'p';
-                    convert_value.u = (uintmax_t)(uintptr_t)ptr;
-                }
-                local_pos += 2;
-                break;
-            }
-
-            // Int types with no format specifier
-            case 'd':
-            case 'i':
-                convert_type = 'd';
-                convert_value.s = (intmax_t)va_arg(argp, int);
-                local_pos += 2;
-                break;
-            case 'u':
-            case 'x':
-            case 'o':
-                convert_type = local_fmt[1];
-                convert_value.u = (uintmax_t)va_arg(argp, unsigned);
-                local_pos += 2;
-                break;
-
-            // Int types with size format: long
-            case 'l': {
-                switch (local_fmt[2]) {
-                case 'd':
-                case 'i':
-                    convert_type = 'd';
-                    convert_value.s = (intmax_t)va_arg(argp, long);
-                    local_pos += 3;
-                    break;
-                case 'u':
-                case 'x':
-                case 'o':
-                    convert_type = local_fmt[2];
-                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
-                    local_pos += 3;
-                    break;
-                }
-                break;
-            }
-
-            // Int types with size format: size_t
-            case 'z': {
-                switch (local_fmt[2]) {
-                case 'd':
-                case 'i':
-                    convert_type = 'd';
-                    convert_value.s = (intmax_t)(uintmax_t)va_arg(argp, size_t);
-                    local_pos += 3;
-                    break;
-                case 'u':
-                case 'x':
-                case 'o':
-                    convert_type = local_fmt[2];
-                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
-                    local_pos += 3;
-                    break;
-                }
-                break;
-            }
-            }
-
-            // Convert int type to string
-            switch (convert_type) {
-            case 'd':
-                data.str = data.buf;
-                data.len = intmax_to_string(convert_value.s, data.buf, 10);
-                handled = true;
-                break;
-            case 'u':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 10);
-                handled = true;
-                break;
-            case 'x':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 16);
-                handled = true;
-                break;
-            case 'o':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 8);
-                handled = true;
-                break;
-            case 'p':
-                strcpy(data.buf, "0x");
-                data.str = data.buf;
-                data.len =
-                    uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
-                handled = true;
-                break;
-            }
-        }
-
-        // Didn't match a format above
-        // Handle block of non-format characters
-        if (!handled) {
-            data.str = local_fmt;
-            data.len = 1 + strcspn(local_fmt + 1, "%");
-            local_pos += data.len;
-        }
-
-        // Handle format characters
-        pos += local_pos;
-
-        // Write output
-        if (data.len > 0) {
-            ssize_t ret = rio_writen(fileno, (const void *)data.str, data.len);
-            if (ret < 0 || (size_t)ret != data.len) {
-                return -1;
-            }
-            num_written += data.len;
-        }
-    }
-
-    return num_written;
-}
-#else
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
     sio_write_output_t state;
     state.fileno = fileno;
     return sio_vformat(sio_write_output, &state, fmt, argp);
 }
 
-#endif
+
+ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    ssize_t ret = sio_vsnprintf(str, size, fmt, argp);
+    va_end(argp);
+    return ret;
+}
+
+
+ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
+    sio_buffer_output_t state;
+    ssize_t ret;
+    if (size > 0) {
+        state.buffer = str;
+        state.remaining = size - 1;
+    } else { // No Output
+        state.buffer = NULL;
+        state.remaining = 0;
+    }
+    ret = sio_vformat(sio_buffer_output, &state, fmt, argp);
+    if (ret >= 0 && state.buffer != NULL) {
+        *(state.buffer) = '\0';
+    }
+    return ret;
+}
+
+
 
 ssize_t sio_write_output(void* state, char padding, size_t count, const char* data, size_t len) {
     int fileno = ((sio_write_output_t*)state)->fileno;
@@ -397,8 +240,24 @@ ssize_t sio_write_output(void* state, char padding, size_t count, const char* da
 
 
 ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* data, size_t len) {
+
+    
+    int i = 0;
+    int total_len = count + len; // TODO check all those null bytes
     sio_buffer_output_t* buffer_state = state;
-    return -1;
+    //sio_eprintf("debug buffer_output: state(%p, %d), padding: '%c', count: %zd, data:\"%s\", len: %zd\n", buffer_state->buffer, buffer_state->remaining, padding, count, data, len);
+    for (i = 0; i < count && buffer_state->remaining > 0; i++) {
+        *(buffer_state->buffer) = padding;
+        buffer_state->buffer++;
+        buffer_state->remaining--;
+    }
+    for (i = 0; i < len && buffer_state->remaining > 0; i++) {
+        *(buffer_state->buffer) = *data;
+        buffer_state->buffer++;
+        data++;
+        buffer_state->remaining--;
+    }
+    return total_len;
 }
 
 ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) {

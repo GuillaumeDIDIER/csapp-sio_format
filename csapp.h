@@ -77,6 +77,11 @@ ssize_t sio_eprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
     __attribute__((format(printf, 2, 0)));
 
+ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...)
+    __attribute__((format(printf, 3, 4)));
+ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp)
+    __attribute__((format(printf, 3, 0)));
+
 typedef ssize_t (*sio_output_function)(void*, char, size_t, const char*, size_t);
 ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
 ssize_t sio_vformat(sio_output_function output, void* output_state, const char* fmt, va_list argp) __attribute__((format(printf, 3, 0)));

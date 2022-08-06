@@ -8,7 +8,7 @@ ifneq (,$(wildcard /usr/lib/llvm-7/bin/))
   LLVM_PATH = /usr/lib/llvm-7/bin/
 endif
 
-FILES = empty_test test_sio_assert test_sio_printf
+FILES = empty_test test_sio_assert test_sio_printf test_sio_snprintf
 
 .PHONY: all
 all: $(FILES)
