@@ -72,15 +72,15 @@ handler_t *Signal(int signum, handler_t *handler);
 /* Sio (Signal-safe I/O) routines */
 ssize_t sio_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_dprintf(int fileno, const char *fmt, ...)
-    __attribute__((format(printf, 2, 3)));
+__attribute__((format(printf, 2, 3)));
 ssize_t sio_eprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp)
-    __attribute__((format(printf, 2, 0)));
+__attribute__((format(printf, 2, 0)));
 
 ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...)
-    __attribute__((format(printf, 3, 4)));
+__attribute__((format(printf, 3, 4)));
 ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp)
-    __attribute__((format(printf, 3, 0)));
+__attribute__((format(printf, 3, 0)));
 
 typedef ssize_t (*sio_output_function)(void*, char, size_t, const char*, size_t);
 ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
@@ -101,11 +101,11 @@ typedef struct {
 ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* data, size_t len);
 
 #define sio_assert(expr)                                                       \
-    ((expr) ? (void)0 : __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
+((expr) ? (void)0 : __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))
 
 void __sio_assert_fail(const char *assertion, const char *file,
                        unsigned int line, const char *function)
-    __attribute__((noreturn));
+__attribute__((noreturn));
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);
