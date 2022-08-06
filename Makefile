@@ -16,6 +16,7 @@ all: $(FILES)
 empty_test: empty_test.o csapp.o
 test_sio_assert: test_sio_assert.o csapp.o
 test_sio_printf: test_sio_printf.o csapp.o
+test_sio_snprintf: test_sio_snprintf.o csapp.o
 
 .PHONY: format
 format: csapp.c csapp.h
