@@ -103,6 +103,11 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
     return len;
 }
 
+static size_t double_to_string(double d, char s[]) {
+    strcpy(s, "<float>");
+    return strlen("<float>");
+}
+
 /* Public Sio functions */
 
 /**
@@ -479,7 +484,6 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                 }
                 case 'f': {
                     //num_type = NumFloat;
-
                     current++;
                     switch (num_size) {
                         case NumSizeInt:
@@ -495,6 +499,7 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                             error = true;
                             break;
                     }
+                    local_pos += current;
                     break;
                 }
                 default:
@@ -532,6 +537,9 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                     handled = true;
                     break;
                 case 'f':
+                    data.str = data.buf;
+                    data.len = double_to_string(convert_value.f, data.buf);
+                    handled = true;
                     break;
 
             }
