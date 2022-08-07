@@ -32,6 +32,8 @@ int main(void) {
         sio_printf("string: %s %s\n", NULL, "hola");
         sio_printf("padding:'%*d'\n", 5, 5);
         sio_printf("negative padding:'%*d'\n", -5, -5);
+
+        sio_printf("float %f and double %lf\n", 456.1, 789.123);
         sio_printf("---------------------------------------------\n");
     }
 
@@ -65,6 +67,8 @@ int main(void) {
         printf("string: %s %s\n", NULL, "hola");
         printf("padding:'%*d'\n", 5, 5);
         printf("negative padding:'%*d'\n", -5, -5);
+
+        printf("float %f and double %lf\n", 456.1, 789.123);
         printf("---------------------------------------------\n");
     }
 

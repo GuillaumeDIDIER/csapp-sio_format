@@ -487,7 +487,7 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                             convert_value.f = va_arg(argp, double);
                             break;
                         case NumSizeLong:
-                            convert_type = 'F';
+                            convert_type = 'f';
                             convert_value.f = va_arg(argp, double);
                             break;
                         default:
@@ -533,8 +533,7 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                     break;
                 case 'f':
                     break;
-                case 'F':
-                    break;
+
             }
         }
 
