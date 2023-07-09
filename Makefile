@@ -1,9 +1,13 @@
 CC = $(LLVM_PATH)clang
-CFLAGS = -arch x86_64 -arch arm64 -O0 -g -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
-         -Weverything -Wno-disabled-macro-expansion -Wno-padded
+CFLAGS = -O0 -g -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
+         -Weverything -Wno-padded \
+         -Wno-unused-function -Wno-unused-parameter \
+         # -Wno-disabled-macro-expansion
 LDLIBS = -lpthread
 
-LDFLAGS = -arch x86_64 -arch arm64
+# Used on Darwin
+#CFLAGS += -arch x86_64 -arch arm64
+#LDFLAGS = -arch x86_64 -arch arm64
 
 #LLVM_PATH = /usr/local/depot/llvm-7.0/bin/
 #ifneq (,$(wildcard /usr/lib/llvm-7/bin/))
