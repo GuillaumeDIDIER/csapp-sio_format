@@ -5,7 +5,12 @@
 
 #include "csapp.h"
 
+#ifdef CSAPP_HAS_DTOA
+#include "csapp_dtoa.h"
+#endif // CSAPP_HAS_DTOA
+
 #include <errno.h>      /* errno */
+#include <limits.h>     /* SSIZE_MAX */
 #include <netdb.h>      /* freeaddrinfo() */
 #include <semaphore.h>  /* sem_t */
 #include <signal.h>     /* struct sigaction */
@@ -103,11 +108,6 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
     return len;
 }
 
-static size_t double_to_string(double d, char s[]) {
-    strcpy(s, "<float>");
-    return strlen("<float>");
-}
-
 /* Public Sio functions */
 
 /**
@@ -168,7 +168,6 @@ struct _format_data {
     char buf[128];   // Backing buffer to use for conversions
 };
 
-
 /**
  * @brief   Prints formatted output to a file descriptor from a va_list.
  * @param fileno   The file descriptor to print output to.
@@ -196,7 +195,6 @@ ssize_t sio_vdprintf(int fileno, const char *fmt, va_list argp) {
     return sio_vformat(sio_write_output, &state, fmt, argp);
 }
 
-
 ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
@@ -204,7 +202,6 @@ ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...) {
     va_end(argp);
     return ret;
 }
-
 
 ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
     sio_buffer_output_t state;
@@ -225,16 +222,19 @@ ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
 
 #define PADDING_BUF_LEN 128
 
-ssize_t sio_write_output(void* state, char padding, size_t count, const char* data, size_t len) {
-    int fileno = ((sio_write_output_t*)state)->fileno;
+ssize_t sio_write_output(void *state, char padding, size_t count,
+                         const char *data, size_t len) {
+    int fileno = ((sio_write_output_t *)state)->fileno;
 
+    if (count > (size_t)SSIZE_MAX || len > (size_t) SSIZE_MAX || count + len > (size_t) SSIZE_MAX) {
+        return -1;
+    }
     ssize_t num_written = 0;
 
-    // TODO support padding
     char buf[PADDING_BUF_LEN];
     memset(buf, padding, PADDING_BUF_LEN);
-    while (num_written < count) {
-        size_t padding_len = count - num_written;
+    while ((size_t) num_written < count) {
+        size_t padding_len = count - (size_t) num_written;
         if (padding_len > PADDING_BUF_LEN) {
             padding_len = PADDING_BUF_LEN;
         }
@@ -255,14 +255,15 @@ ssize_t sio_write_output(void* state, char padding, size_t count, const char* da
     return num_written;
 }
 
+ssize_t sio_buffer_output(void *state, char padding, size_t count,
+                          const char *data, size_t len) {
 
-
-ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* data, size_t len) {
-
-
-    int i = 0;
+    size_t i = 0;
     size_t total_len = count + len; // TODO check all those null bytes
-    sio_buffer_output_t* buffer_state = state;
+    if (total_len > SSIZE_MAX) {
+        return -1;
+    }
+    sio_buffer_output_t *buffer_state = state;
 
     if (buffer_state->buffer != NULL) {
         for (i = 0; i < count && buffer_state->remaining > 0; i++) {
@@ -278,10 +279,11 @@ ssize_t sio_buffer_output(void* state, char padding, size_t count, const char* d
         }
         *(buffer_state->buffer) = '\0';
     }
-    return total_len;
+    return (ssize_t)total_len;
 }
 
-ssize_t sio_format(sio_output_function output, void* output_state, const char* fmt, ...) {
+ssize_t sio_format(sio_output_function output, void *output_state,
+                   const char *fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
     ssize_t ret = sio_vformat(output, output_state, fmt, argp);
@@ -303,9 +305,13 @@ typedef enum {
     NumFloat,
 } number_type_t;*/
 
-ssize_t sio_vformat(sio_output_function output, void* output_state, const char* fmt, va_list argp) {
+/* TODO's: Add support for .* precision, and refactor the name num_written below
+ */
+ssize_t sio_vformat(sio_output_function output, void *output_state,
+                    const char *fmt, va_list argp) {
     size_t pos = 0;
-    ssize_t num_written = 0; // refactor this name, which no longer reflects the real meaning
+    ssize_t num_written =
+        0; // refactor this name, which no longer reflects the real meaning
 
     bool error = false;
     while (fmt[pos] != '\0') {
@@ -317,11 +323,13 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
 
         size_t local_pos = 0;
         bool handled = false;
+        ssize_t written = 0;
         bool padded = false;
         int padding = 0;
+        int precision = 6;
         size_t current = 0;
         number_size_t num_size = NumSizeInt;
-        //number_type_t num_type = NumNone;
+        // number_type_t num_type = NumNone;
 
         if (local_fmt[0] == '%') {
             current += 1;
@@ -344,204 +352,217 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
                 current++;
             }
 
+            switch (local_fmt[current]) {
+            case 'l':
+                current++;
+                if (local_fmt[current] == 'l') {
+                    num_size = NumSizeLongLong;
+                    current++;
+                } else {
+                    num_size = NumSizeLong;
+                }
+                break;
+            case 'z':
+                current++;
+                num_size = NumSizeSize;
+                break;
+            } // add j for intmax_t ? t is ptr_diff ?
 
             switch (local_fmt[current]) {
-                case 'l':
+                // Character format
+            case 'c': {
+                if (num_size != NumSizeInt) {
+                    error = true;
+                } else {
+                    data.buf[0] = (char)va_arg(argp, int);
+                    data.buf[1] = '\0';
+                    data.str = data.buf;
+                    data.len = 1;
+                    handled = true;
                     current++;
-                    if (local_fmt[current] == 'l') {
-                        num_size = NumSizeLongLong;
-                        current++;
-                    } else {
-                        num_size = NumSizeLong;
-                    }
-                    break;
-                case 'z':
-                    current++;
-                    num_size = NumSizeSize;
-                    break;
+                    local_pos += current;
+                }
+                break;
             }
 
-
-            switch (local_fmt[current]) {
-                    // Character format
-                case 'c': {
-                    if (num_size != NumSizeInt) {
-                        error = true;
-                    } else {
-                        data.buf[0] = (char)va_arg(argp, int);
-                        data.buf[1] = '\0';
-                        data.str = data.buf;
-                        data.len = 1;
-                        handled = true;
-                        current++;
-                        local_pos += current;
+                // String format
+            case 's': {
+                if (num_size != NumSizeInt) {
+                    error = true;
+                } else {
+                    data.str = va_arg(argp, char *);
+                    if (data.str == NULL) {
+                        data.str = "(null)";
                     }
-                    break;
+                    data.len = strlen(data.str);
+                    handled = true;
+                    current++;
+                    local_pos += current;
                 }
+                break;
+            }
 
-                    // String format
-                case 's': {
-                    if (num_size != NumSizeInt) {
-                        error = true;
-                    } else {
-                        data.str = va_arg(argp, char *);
-                        if (data.str == NULL) {
-                            data.str = "(null)";
-                        }
+                // Escaped %
+            case '%': {
+                if (current != 1) {
+                    error = true;
+                } else {
+                    data.str = local_fmt;
+                    data.len = 1;
+                    handled = true;
+                    current++;
+                    local_pos += current;
+                }
+                break;
+            }
+
+                // Pointer type
+            case 'p': {
+                if (num_size != NumSizeInt) {
+                    error = true;
+                } else {
+                    void *ptr = va_arg(argp, void *);
+                    if (ptr == NULL) {
+                        data.str = "(nil)";
                         data.len = strlen(data.str);
                         handled = true;
-                        current++;
-                        local_pos += current;
-                    }
-                    break;
-                }
-
-                    // Escaped %
-                case '%': {
-                    if (current != 1) {
-                        error = true;
                     } else {
-                        data.str = local_fmt;
-                        data.len = 1;
-                        handled = true;
-                        current++;
-                        local_pos += current;
+                        convert_type = 'p';
+                        convert_value.u = (uintmax_t)(uintptr_t)ptr;
                     }
-                    break;
-                }
-
-                    // Pointer type
-                case 'p': {
-                    if (num_size != NumSizeInt) {
-                        error = true;
-                    } else {
-                        void *ptr = va_arg(argp, void *);
-                        if (ptr == NULL) {
-                            data.str = "(nil)";
-                            data.len = strlen(data.str);
-                            handled = true;
-                        } else {
-                            convert_type = 'p';
-                            convert_value.u = (uintmax_t)(uintptr_t)ptr;
-                        }
-                        current++;
-                        local_pos += current;
-                    }
-                    break;
-                }
-
-                    // Int types with no format specifier
-                case 'd':
-                case 'i': {
-                    //num_type = NumSigned;
-                    convert_type = 'd';
                     current++;
+                    local_pos += current;
+                }
+                break;
+            }
 
-                    //convert_value.s = (intmax_t)va_arg(argp, int);
-                    switch (num_size) {
-                        case NumSizeInt:
-                            convert_value.s = (intmax_t)va_arg(argp, int);
-                            break;
-                        case NumSizeLong:
-                            convert_value.s = (intmax_t)va_arg(argp, long int);
-                            break;
-                        case NumSizeLongLong: // Need to add #ifdef checks ?
-                            convert_value.s = (intmax_t)va_arg(argp, long long int);
-                            break;
-                        case NumSizeSize:
-                            convert_value.s = (intmax_t)va_arg(argp, ssize_t);
-                            break;
-                        default:
-                            // internal error
-                            __sio_assert_fail("Unknown Number Size in format",__FILE__, __LINE__, __func__);
-                            //break;
-                    }
-                    local_pos += current;
+                // Int types with no format specifier
+            case 'd':
+            case 'i': {
+                // num_type = NumSigned;
+                convert_type = 'd';
+                current++;
+
+                // convert_value.s = (intmax_t)va_arg(argp, int);
+                switch (num_size) {
+                case NumSizeInt:
+                    convert_value.s = (intmax_t)va_arg(argp, int);
                     break;
-                }
-                case 'u':
-                case 'x':
-                case 'o': {
-                    //num_type = NumUnsigned;
-                    convert_type = local_fmt[current];
-                    current++;
-                    switch (num_size) {
-                        case NumSizeInt:
-                            convert_value.u = (uintmax_t)va_arg(argp, unsigned);
-                            break;
-                        case NumSizeLong:
-                            convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
-                            break;
-                        case NumSizeLongLong:
-                            convert_value.u = (uintmax_t)va_arg(argp, unsigned long long);
-                            break;
-                        case NumSizeSize:
-                            convert_value.u = (uintmax_t)va_arg(argp, size_t);
-                            break;
-                    }
-                    local_pos += current;
+                case NumSizeLong:
+                    convert_value.s = (intmax_t)va_arg(argp, long int);
                     break;
-                }
-                case 'f': {
-                    //num_type = NumFloat;
-                    current++;
-                    switch (num_size) {
-                        case NumSizeInt:
-                            convert_type = 'f';
-                            convert_value.f = va_arg(argp, double);
-                            break;
-                        case NumSizeLong:
-                            convert_type = 'f';
-                            convert_value.f = va_arg(argp, double);
-                            break;
-                        default:
-                            // User error;
-                            error = true;
-                            break;
-                    }
-                    local_pos += current;
+                case NumSizeLongLong: // Need to add #ifdef checks ?
+                    convert_value.s = (intmax_t)va_arg(argp, long long int);
                     break;
-                }
+                case NumSizeSize:
+                    convert_value.s = (intmax_t)va_arg(argp, ssize_t);
+                    break;
                 default:
+                    // internal error
+                    __sio_assert_fail("Unknown Number Size in format", __FILE__,
+                                      __LINE__, __func__);
+                    // break;
+                }
+                local_pos += current;
+                break;
+            }
+            case 'u':
+            case 'x':
+            case 'o': {
+                // num_type = NumUnsigned;
+                convert_type = local_fmt[current];
+                current++;
+                switch (num_size) {
+                case NumSizeInt:
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned);
+                    break;
+                case NumSizeLong:
+                    convert_value.u = (uintmax_t)va_arg(argp, unsigned long);
+                    break;
+                case NumSizeLongLong:
+                    convert_value.u =
+                        (uintmax_t)va_arg(argp, unsigned long long);
+                    break;
+                case NumSizeSize:
+                    convert_value.u = (uintmax_t)va_arg(argp, size_t);
+                    break;
+                }
+                local_pos += current;
+                break;
+            }
+            case 'f': { // Default float precision is 6
+                // num_type = NumFloat;
+                current++;
+                switch (num_size) {
+                case NumSizeInt:
+                    convert_type = 'f';
+                    convert_value.f = va_arg(argp, double);
+                    break;
+                case NumSizeLong:
+                    convert_type = 'f';
+                    convert_value.f = va_arg(argp, double);
+                    break;
+                default:
+                    // User error;
                     error = true;
                     break;
+                }
+                local_pos += current;
+                break;
+            }
+            default:
+                error = true;
+                break;
             }
 
             // Convert int type to string
             switch (convert_type) {
-                case 'd':
-                    data.str = data.buf;
-                    data.len = intmax_to_string(convert_value.s, data.buf, 10);
-                    handled = true;
-                    break;
-                case 'u':
-                    data.str = data.buf;
-                    data.len = uintmax_to_string(convert_value.u, data.buf, 10);
-                    handled = true;
-                    break;
-                case 'x':
-                    data.str = data.buf;
-                    data.len = uintmax_to_string(convert_value.u, data.buf, 16);
-                    handled = true;
-                    break;
-                case 'o':
-                    data.str = data.buf;
-                    data.len = uintmax_to_string(convert_value.u, data.buf, 8);
-                    handled = true;
-                    break;
-                case 'p':
-                    strcpy(data.buf, "0x");
-                    data.str = data.buf;
-                    data.len =
+            case 'd':
+                data.str = data.buf;
+                data.len = intmax_to_string(convert_value.s, data.buf, 10);
+                handled = true;
+                break;
+            case 'u':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 10);
+                handled = true;
+                break;
+            case 'x':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 16);
+                handled = true;
+                break;
+            case 'o':
+                data.str = data.buf;
+                data.len = uintmax_to_string(convert_value.u, data.buf, 8);
+                handled = true;
+                break;
+            case 'p':
+                strcpy(data.buf, "0x");
+                data.str = data.buf;
+                data.len =
                     uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
-                    handled = true;
-                    break;
-                case 'f':
-                    data.str = data.buf;
-                    data.len = double_to_string(convert_value.f, data.buf);
-                    handled = true;
-                    break;
-
+                handled = true;
+                break;
+            case 'f': // FIXME, wire this to do the right thing here.
+                // Float may generate longer results than 128
+                data.str = data.buf;
+#ifdef CSAPP_HAS_DTOA
+                data.len = 0;
+#ifdef CSAPP_DTOA_SHORTEST
+                written = sio_format_double_shortest(
+                    output, output_state, convert_value.f, FORMAT_f, padding);
+#else  // CSAPP_DTOA_SHORTEST
+                written = sio_format_double_exact(output, output_state,
+                                                  convert_value.f, FORMAT_f,
+                                                  (size_t)padding, precision); // Right padding is unsupported
+#endif // CSAPP_DTOA_SHORTEST
+#else
+                data.str = "<float>";
+                data.len = strlen(data.str);
+#endif // CSAPP_HAS_DTOA
+                handled = true;
+                break;
             }
         }
 
@@ -558,14 +579,17 @@ ssize_t sio_vformat(sio_output_function output, void* output_state, const char* 
 
         // Write output
         size_t padding_count = 0;
-        if (padded && padding > data.len) {
-            padding_count = padding - data.len;
+        if (padded && (size_t) padding > data.len) { // Right padding unsupported
+            padding_count = (size_t) padding - data.len;
         }
-        ssize_t ret = output(output_state, ' ', padding_count, data.str, data.len);
-        if (ret < 0) {
+        if (written == 0) {
+            written =
+                output(output_state, ' ', padding_count, data.str, data.len);
+        }
+        if (written < 0) {
             return -1;
         }
-        num_written += ret;
+        num_written += written;
     }
 
     if (error) {

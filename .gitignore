@@ -2,3 +2,4 @@
 empty_test
 test_sio_assert
 test_sio_printf
+test_dtoa
