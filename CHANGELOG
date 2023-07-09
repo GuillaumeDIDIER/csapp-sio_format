@@ -1,3 +1,8 @@
+ Updated 07/2023 gdidier:
+   - Major refactor of sio_printf into a sio_format backend supporting sio_snprintf and sio_printf
+   - Fixes of undefined behavior, make the code portable to darwin amr64 and x86_64
+   - Alpha version of float printing support in csapp_dtoa.c
+
  Updated 04/2020 khg:
    - Formatted with clang-format
    - Made includes minimal again (removed sys/stat.h, string.h)
