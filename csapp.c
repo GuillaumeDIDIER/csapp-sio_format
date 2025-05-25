@@ -345,7 +345,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
         bool padded = false;
         bool precision_given = false;
         int padding = 0;
-        int precision = 6;
+        int precision = -1;
         size_t current = 0;
         number_size_t num_size = NumSizeInt;
         // number_type_t num_type = NumNone;
@@ -372,9 +372,10 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
 
             if (local_fmt[current] == '.') {
                 if (local_fmt[current+1] == '*' && local_fmt[current] + 2 != '\0') {
-                    precision_given = true;
                     precision = va_arg(argp, int);
-                    // TODO check range of legal values.
+                    if (precision >= 0) {
+                        precision_given = true;
+                    } // TODO, wire up correct usage and default value for types other than s and f.
                     current+=2;
                 } else {
                     error = true;
@@ -438,6 +439,9 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                         data.str = "(null)";
                     }
                     data.len = strlen(data.str);
+                    if (precision_given && precision < data.len) {
+                        data.len = precision;
+                    }
                     handled = true;
                     current++;
                     local_pos += current;
@@ -592,14 +596,12 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 data.str = data.buf;
 #ifdef CSAPP_HAS_DTOA
                 data.len = 0;
-#ifdef CSAPP_DTOA_SHORTEST
-                written = sio_format_double_shortest(
-                    output, output_state, convert_value.f, FORMAT_f, padding);
-#else  // CSAPP_DTOA_SHORTEST
+                if (!precision_given) {
+                    precision = FLOAT_DEFAULT_PRECISION;
+                }
                 written = sio_format_double_exact(output, output_state,
                                                   convert_value.f, FORMAT_f,
-                                                  (size_t)padding, precision); // Right padding is unsupported
-#endif // CSAPP_DTOA_SHORTEST
+                                                  padding, precision); // Right padding is unsupported
 #else
                 data.str = "<float>";
                 data.len = strlen(data.str);

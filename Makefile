@@ -1,4 +1,4 @@
-CC = $(LLVM_PATH)clang
+#CC = $(LLVM_PATH)clang
 CFLAGS = -O0 -g -Wall -Wextra -pedantic -std=c99 -D_FORTIFY_SOURCE=2 -D_XOPEN_SOURCE=700 \
          -Weverything -Wno-padded \
          -Wno-unused-function -Wno-unused-parameter \

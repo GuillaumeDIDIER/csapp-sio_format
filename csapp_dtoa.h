@@ -14,6 +14,8 @@
 
 #define DTOA_EXACT_BUFFER_SIZE 1024
 
+#define FLOAT_DEFAULT_PRECISION 6
+
 typedef enum {
     FORMAT_f,
     FORMAT_F,

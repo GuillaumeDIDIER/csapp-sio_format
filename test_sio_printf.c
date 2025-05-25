@@ -39,10 +39,16 @@ int main(void) {
 
         sio_printf("string padding:'%*s'\n", 5, "a");
         sio_printf("string negative padding:'%*s'\n", -5, "a");
-        sio_printf("string precision:'%.*s'\n", 5, "a");
-        sio_printf("string negative precision:'%.*s'\n", -5, "a");
+        sio_printf("string precision:'%.*s'\n", 5, "abcdefghijklmnopqrst");
+        sio_printf("string negative precision:'%.*s'\n", -5, "abcdefghijklmnopqrst");
+        sio_printf("string padding precision:'%*.*s'\n", 10, 5, "abcdefghijklmnopqrst");
+        sio_printf("string negative padding precision:'%*.*s'\n", -10, 5, "abcdefghijklmnopqrst");
 
         sio_printf("float %f and double %lf\n", 456.1, 789.123);
+		sio_printf("float %*.*f and double %*.*lf\n", 10, 10, 456.1, 10, 10, 789.123);
+		sio_printf("float %*.*f and double %*.*lf\n", -10, -10, 456.1, -10, -10, 789.123);
+		sio_printf("float %*.*f and double %*.*lf\n", 10, -10, 456.1, 10, -10, 789.123);
+		sio_printf("float %*.*f and double %*.*lf\n", -10, 10, 456.1, -10, 10, 789.123);
         sio_printf("---------------------------------------------\n");
     }
 
@@ -82,10 +88,17 @@ int main(void) {
 
         printf("string padding:'%*s'\n", 5, "a");
         printf("string negative padding:'%*s'\n", -5, "a");
-        printf("string precision:'%.*s'\n", 5, "a");
-        printf("string negative precision:'%.*s'\n", -5, "a");
+        printf("string precision:'%.*s'\n", 5, "abcdefghijklmnopqrst");
+        printf("string negative precision:'%.*s'\n", -5, "abcdefghijklmnopqrst");
+        printf("string padding precision:'%*.*s'\n", 10, 5, "abcdefghijklmnopqrst");
+        printf("string negative padding precision:'%*.*s'\n", -10, 5, "abcdefghijklmnopqrst");
+
 
         printf("float %f and double %lf\n", 456.1, 789.123);
+		printf("float %*.*f and double %*.*lf\n", 10, 10, 456.1, 10, 10, 789.123);
+		printf("float %*.*f and double %*.*lf\n", -10, -10, 456.1, -10, -10, 789.123);
+		printf("float %*.*f and double %*.*lf\n", 10, -10, 456.1, 10, -10, 789.123);
+		printf("float %*.*f and double %*.*lf\n", -10, 10, 456.1, -10, 10, 789.123);
         printf("---------------------------------------------\n");
     }
 
