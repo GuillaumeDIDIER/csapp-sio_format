@@ -936,7 +936,7 @@ static size_t sio_double_to_digits_exact(decoded_float_t *d, char *digit_buffer,
 
 ssize_t sio_format_double_shortest(sio_output_function output,
                                    void *output_state, double d,
-                                   dtoa_flags_t flags, size_t left_padding) {
+                                   dtoa_flags_t flags, ssize_t padding) {
     sio_assert(false); // unimplemented
     return 0;
 }
@@ -944,7 +944,7 @@ ssize_t sio_format_double_shortest(sio_output_function output,
 /* TODO: Sign flags are unsupported for now */
 ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                                 double d, dtoa_flags_t flags,
-                                size_t left_padding, int precision) {
+                                ssize_t padding, int precision) {
     // First allocate an appropriately sized buffer ?
     // Rust uses 1024, to be determined if this is acceptable here.
 
@@ -954,6 +954,15 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
     if (flags != FORMAT_f) {
         // Unsupported
         sio_assert(false);
+    }
+
+    size_t left_padding = 0;
+    size_t right_padding = 0;
+
+    if (padding > 0) {
+        left_padding = (size_t) padding;
+    } else {
+        right_padding = (size_t )  (-padding);
     }
 
     switch (float_kind) {
@@ -986,24 +995,35 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
             } else {
                 length = strlen(buffer);
             }
-            size_t padding_count = 0;
+            size_t left_padding_count = 0;
+            size_t right_padding_count = 0;
             if (left_padding > length) {
-                padding_count = left_padding - length;
+                left_padding_count = left_padding - length;
+            }
+            if (right_padding > length) {
+                right_padding_count = right_padding - length;
             }
 
-            ssize_t res = output(output_state, ' ', padding_count, buffer,
+            ssize_t res = output(output_state, ' ', left_padding_count, 0, buffer,
                                  strlen(buffer));
             if (res < 0) {
                 return -1;
             }
             if (precision > 0) {
-                ssize_t r = output(output_state, '0', (size_t)precision, NULL,
-                                   0); // TODO error handling.
+                ssize_t r = output(output_state, '0', (size_t)precision, 0, NULL,
+                                   0);
                 if (r < 0) {
                     return -1;
                 }
                 res += r;
+
             }
+            ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
+                       0);
+            if (r < 0) {
+                return -1;
+            }
+            res += r;
             return res;
         } else { // digit to decimal string.
                  // This may turn into a help if we implement exponential form.
@@ -1020,19 +1040,26 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     ssize_t)exponent);     // We know th sign of exponent.
                 sio_assert(precision > 0); // Otherwise we should not be here
                 size_t length = decoded.sign + strlen("0.") + (size_t)precision;
-                size_t padding_count = 0;
+                size_t left_padding_count = 0;
+                size_t right_padding_count = 0;
                 if (left_padding > length) {
-                    padding_count = left_padding - length;
+                    left_padding_count = left_padding - length;
+                }
+                if (right_padding > length) {
+                    right_padding_count = right_padding - length;
                 }
                 ssize_t res;
                 if (decoded.sign) {
-                    res = output(output_state, ' ', padding_count, "-0.",
+                    res = output(output_state, ' ', left_padding_count, 0, "-0.",
                                  strlen("-0.")); // TODO error handling.
                 } else {
-                    res = output(output_state, ' ', padding_count, "0.",
+                    res = output(output_state, ' ', left_padding_count, 0, "0.",
                                  strlen("0.")); // TODO error handling.
                 }
-                ssize_t r = output(output_state, '0', minus_exp, data,
+                if (res < 0) {
+                    return -1;
+                }
+                ssize_t r = output(output_state, '0', minus_exp, 0, data,
                                    strlen(data)); // TODO error handling.
                 if (r < 0) {
                     return -1;
@@ -1041,13 +1068,19 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                 if (precision > 0 &&
                     minus_exp + strlen(data) < (size_t)precision) {
                     r = output(output_state, '0',
-                               (size_t)precision - (minus_exp + strlen(data)),
+                               (size_t)precision - (minus_exp + strlen(data)), 0,
                                NULL, 0); // TODO error handling.
                     if (r < 0) {
                         return -1;
                     }
                     res += r;
                 }
+                r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
+                                   0);
+                if (r < 0) {
+                    return -1;
+                }
+                res += r;
                 return res;
             } else { // exponent >= 0
                 size_t sz_exponent = (uint16_t)exponent;
@@ -1060,18 +1093,21 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     } else {
                         length = decoded.sign + sz_exponent;
                     }
-                    size_t padding_count;
-                    if (length < left_padding) {
-                        padding_count = left_padding - length;
-                    } else {
-                        padding_count = 0;
+                    size_t left_padding_count = 0;
+                    size_t right_padding_count = 0;
+                    if (left_padding > length) {
+                        left_padding_count = left_padding - length;
                     }
-                    ssize_t res = output(output_state, ' ', padding_count,
+                    if (right_padding > length) {
+                        right_padding_count = right_padding - length;
+                    }
+
+                    ssize_t res = output(output_state, ' ', left_padding_count, 0,
                                          buffer, sz_exponent + decoded.sign);
                     if (res < 0) {
                         return -1;
                     }
-                    ssize_t r = output(output_state, '.', 1, data + sz_exponent,
+                    ssize_t r = output(output_state, '.', 1, 0, data + sz_exponent,
                                        digits - sz_exponent);
                     if (r < 0) {
                         return -1;
@@ -1080,13 +1116,19 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     if (precision >= 0 &&
                         (size_t)precision > digits - sz_exponent) {
                         r = output(output_state, '0',
-                                   (size_t)precision - digits + sz_exponent,
+                                   (size_t)precision - digits + sz_exponent, 0,
                                    NULL, 0);
                         if (r < 0) {
                             return -1;
                         }
                         res += r;
                     }
+                    r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
+                               0);
+                    if (r < 0) {
+                        return -1;
+                    }
+                    res += r;
                     return res;
                 } else {
                     // The point is after the number
@@ -1097,25 +1139,27 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     } else {
                         length = decoded.sign + sz_exponent;
                     }
-                    size_t padding_count;
-                    if (length < left_padding) {
-                        padding_count = left_padding - length;
-                    } else {
-                        padding_count = 0;
+                    size_t left_padding_count = 0;
+                    size_t right_padding_count = 0;
+                    if (left_padding > length) {
+                        left_padding_count = left_padding - length;
                     }
-                    ssize_t res = output(output_state, ' ', padding_count,
+                    if (right_padding > length) {
+                        right_padding_count = right_padding - length;
+                    }
+                    ssize_t res = output(output_state, ' ', left_padding_count, 0,
                                          buffer, digits + decoded.sign);
                     if (res < 0) {
                         return -1;
                     }
                     if (precision > 0) {
                         ssize_t r = output(output_state, '0',
-                                           sz_exponent - digits, ".", 1);
+                                           sz_exponent - digits, 0, ".", 1);
                         if (r < 0) {
                             return -1;
                         }
                         res += r;
-                        r = output(output_state, '0', (size_t)precision, NULL,
+                        r = output(output_state, '0', (size_t)precision, 0, NULL,
                                    0);
                         if (r < 0) {
                             return -1;
@@ -1123,19 +1167,25 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                         res += r;
                     } else {
                         ssize_t r = output(output_state, '0',
-                                           sz_exponent - digits, NULL, 0);
+                                           sz_exponent - digits, 0, NULL, 0);
                         if (r < 0) {
                             return -1;
                         }
                         res += r;
                     }
+                    ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
+                               0);
+                    if (r < 0) {
+                        return -1;
+                    }
+                    res += r;
                     return res;
                 }
             }
         }
     }
     case FK_ZERO: {
-        // This needs to change if we are to support exponential format.
+        // This needs to change if we are to support exponential formats.
         char *data;
         if (decoded.sign) {
             data = "-0.";
@@ -1148,22 +1198,33 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
         } else {
             length = strlen(data) - 1;
         }
-        size_t padding_count = 0;
+        size_t left_padding_count = 0;
+        size_t right_padding_count = 0;
         if (left_padding > length) {
-            padding_count = left_padding - length;
+            left_padding_count = left_padding - length;
         }
-        ssize_t res = output(output_state, ' ', padding_count, data,
+        if (right_padding > length) {
+            right_padding_count = right_padding - length;
+        }
+
+        ssize_t res = output(output_state, ' ', left_padding_count, 0, data,
                              strlen(data) - (precision <= 0));
         if (res < 0) {
             return -1;
         }
         if (precision > 0) {
-            ssize_t r = output(output_state, '0', (size_t)precision, NULL, 0);
+            ssize_t r = output(output_state, '0', (size_t)precision, 0, NULL, 0);
             if (r < 0) {
                 return -1;
             }
             res += r;
         }
+        ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
+                           0);
+        if (r < 0) {
+            return -1;
+        }
+        res += r;
         return res;
     }
     case FK_INFINITY: {
@@ -1173,19 +1234,27 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
         } else {
             data = "inf";
         }
-        size_t padding_count = 0;
+        size_t left_padding_count = 0;
+        size_t right_padding_count = 0;
         if (left_padding > (strlen(data))) {
-            padding_count = left_padding - (strlen(data));
+            left_padding_count = left_padding - (strlen(data));
         }
-        return output(output_state, ' ', padding_count, data, strlen(data));
+        if (right_padding > (strlen(data))) {
+            right_padding_count = right_padding - (strlen(data));
+        }
+        return output(output_state, ' ', left_padding_count, right_padding_count, data, strlen(data));
     }
     case FK_NAN: {
         char *data = "nan";
-        size_t padding_count = 0;
+        size_t left_padding_count = 0;
+        size_t right_padding_count = 0;
         if (left_padding > (strlen(data))) {
-            padding_count = left_padding - (strlen(data));
+            left_padding_count = left_padding - (strlen(data));
         }
-        return output(output_state, ' ', padding_count, data, strlen(data));
+        if (right_padding > (strlen(data))) {
+            right_padding_count = right_padding - (strlen(data));
+        }
+        return output(output_state, ' ', left_padding_count, right_padding_count, data, strlen(data));
     }
     }
 }

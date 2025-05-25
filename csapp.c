@@ -222,24 +222,24 @@ ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
 
 #define PADDING_BUF_LEN 128
 
-ssize_t sio_write_output(void *state, char padding, size_t count,
+ssize_t sio_write_output(void *state, char padding, size_t count_left, size_t count_right,
                          const char *data, size_t len) {
     int fileno = ((sio_write_output_t *)state)->fileno;
 
-    if (count > (size_t)SSIZE_MAX || len > (size_t) SSIZE_MAX || count + len > (size_t) SSIZE_MAX) {
+    if (count_left > (size_t)SSIZE_MAX || len > (size_t) SSIZE_MAX || count_left + len > (size_t) SSIZE_MAX || count_right > (size_t) SSIZE_MAX || count_left + len + count_right > (size_t) SSIZE_MAX) {
         return -1;
     }
     ssize_t num_written = 0;
 
     char buf[PADDING_BUF_LEN];
     memset(buf, padding, PADDING_BUF_LEN);
-    while ((size_t) num_written < count) {
-        size_t padding_len = count - (size_t) num_written;
-        if (padding_len > PADDING_BUF_LEN) {
-            padding_len = PADDING_BUF_LEN;
+    while ((size_t) num_written < count_left) {
+        size_t padding_left_len = count_left - (size_t) num_written;
+        if (padding_left_len > PADDING_BUF_LEN) {
+            padding_left_len = PADDING_BUF_LEN;
         }
-        ssize_t ret = rio_writen(fileno, (const void *)buf, padding_len);
-        if (ret < 0 || (size_t)ret != padding_len) {
+        ssize_t ret = rio_writen(fileno, (const void *)buf, padding_left_len);
+        if (ret < 0 || (size_t)ret != padding_left_len) {
             return -1;
         }
         num_written += ret;
@@ -252,21 +252,34 @@ ssize_t sio_write_output(void *state, char padding, size_t count,
         }
         num_written += ret;
     }
+    while ((size_t) num_written < count_left + len + count_right) {
+        size_t padding_right_len = count_left + len + count_right - (size_t) num_written;
+        if (padding_right_len > PADDING_BUF_LEN) {
+            padding_right_len = PADDING_BUF_LEN;
+        }
+        ssize_t ret = rio_writen(fileno, (const void *)buf, padding_right_len);
+        if (ret < 0 || (size_t)ret != padding_right_len) {
+            return -1;
+        }
+        num_written += ret;
+    }
     return num_written;
 }
 
-ssize_t sio_buffer_output(void *state, char padding, size_t count,
+ssize_t sio_buffer_output(void *state, char padding, size_t count_left, size_t count_right,
                           const char *data, size_t len) {
 
     size_t i = 0;
-    size_t total_len = count + len; // TODO check all those null bytes
-    if (total_len > SSIZE_MAX) {
+    size_t total_len = count_left + len + count_right; // TODO check all those null bytes
+    if (total_len > SSIZE_MAX) { // This check is in general insufficient,
+                                 // but in our use case,
+                                 // one of the three number is 0.
         return -1;
     }
     sio_buffer_output_t *buffer_state = state;
 
     if (buffer_state->buffer != NULL) {
-        for (i = 0; i < count && buffer_state->remaining > 0; i++) {
+        for (i = 0; i < count_left && buffer_state->remaining > 0; i++) {
             *(buffer_state->buffer) = padding;
             buffer_state->buffer++;
             buffer_state->remaining--;
@@ -275,6 +288,11 @@ ssize_t sio_buffer_output(void *state, char padding, size_t count,
             *(buffer_state->buffer) = *data;
             buffer_state->buffer++;
             data++;
+            buffer_state->remaining--;
+        }
+        for (i = 0; i < count_right && buffer_state->remaining > 0; i++) {
+            *(buffer_state->buffer) = padding;
+            buffer_state->buffer++;
             buffer_state->remaining--;
         }
         *(buffer_state->buffer) = '\0';
@@ -325,13 +343,14 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
         bool handled = false;
         ssize_t written = 0;
         bool padded = false;
+        bool precision_given = false;
         int padding = 0;
         int precision = 6;
         size_t current = 0;
         number_size_t num_size = NumSizeInt;
         // number_type_t num_type = NumNone;
 
-        if (local_fmt[0] == '%') {
+        if (local_fmt[0] == '%' && local_fmt[1] != '\0') {
             current += 1;
             // Marked if we need to convert an integer
             char convert_type = '\0';
@@ -341,30 +360,54 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 double f;
             } convert_value = {.u = 0};
 
-            // padding specifier
             if (local_fmt[current] == '*') {
-                padded = true;
-                padding = va_arg(argp, int);
-                if (padding < 0) {
-                    padding = 0;
-                    // right padding is unsupported for now
-                }
-                current++;
-            }
-
-            switch (local_fmt[current]) {
-            case 'l':
-                current++;
-                if (local_fmt[current] == 'l') {
-                    num_size = NumSizeLongLong;
+                if (local_fmt[current + 1] != '\0'){
+                    padded = true;
+                    padding = va_arg(argp, int);
                     current++;
                 } else {
-                    num_size = NumSizeLong;
+                    error = true;
+                }
+            }
+
+            if (local_fmt[current] == '.') {
+                if (local_fmt[current+1] == '*' && local_fmt[current] + 2 != '\0') {
+                    precision_given = true;
+                    precision = va_arg(argp, int);
+                    // TODO check range of legal values.
+                    current+=2;
+                } else {
+                    error = true;
+                }
+            }
+
+
+            switch (local_fmt[current]) { // FIXME,
+                                          // risk of reading out of bounds
+            case 'l':
+                if (local_fmt[current+1] != '\0') {
+                    current++;
+                    if (local_fmt[current] == 'l') {
+                        if (local_fmt[current+1] != '\0') {
+                            num_size = NumSizeLongLong;
+                            current++;
+                        } else {
+                            error = true;
+                        }
+                    } else {
+                        num_size = NumSizeLong;
+                    }
+                } else {
+                    error = true;
                 }
                 break;
             case 'z':
+                if (local_fmt[current+1] != '\0') {
                 current++;
                 num_size = NumSizeSize;
+                } else {
+                    error = true;
+                }
                 break;
             } // add j for intmax_t ? t is ptr_diff ?
 
@@ -544,7 +587,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                     uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
                 handled = true;
                 break;
-            case 'f': // FIXME, wire this to do the right thing here.
+            case 'f':
                 // Float may generate longer results than 128
                 data.str = data.buf;
 #ifdef CSAPP_HAS_DTOA
@@ -563,7 +606,10 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
 #endif // CSAPP_HAS_DTOA
                 handled = true;
                 break;
+            default:
+                error = true;
             }
+
         }
 
         // Didn't match a format above
@@ -578,13 +624,17 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
         pos += local_pos;
 
         // Write output
-        size_t padding_count = 0;
-        if (padded && (size_t) padding > data.len) { // Right padding unsupported
-            padding_count = (size_t) padding - data.len;
+        size_t right_padding_count = 0;
+        size_t left_padding_count = 0;
+        if (padded && padding > 0 && (size_t) padding > data.len) { // Right padding unsupported
+            left_padding_count = (size_t) padding - data.len;
+        }
+        if (padded && padding < 0 && (size_t) (-padding) > data.len) { // Right padding unsupported
+            right_padding_count = (size_t) (-padding) - data.len;
         }
         if (written == 0) {
             written =
-                output(output_state, ' ', padding_count, data.str, data.len);
+                output(output_state, ' ', left_padding_count, right_padding_count, data.str, data.len);
         }
         if (written < 0) {
             return -1;
