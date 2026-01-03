@@ -19,8 +19,8 @@ FILES = empty_test test_sio_assert test_sio_printf test_sio_snprintf test_dtoa
 .PHONY: all
 all: $(FILES)
 
-empty_test: empty_test.o csapp.o
-test_sio_assert: test_sio_assert.o csapp.o
+empty_test: empty_test.o csapp.o csapp_dtoa.o
+test_sio_assert: test_sio_assert.o csapp.o csapp_dtoa.o
 test_sio_printf: test_sio_printf.o csapp.o csapp_dtoa.c
 test_sio_snprintf: test_sio_snprintf.o csapp.o csapp_dtoa.c
 test_dtoa: test_dtoa.c csapp.o csapp_dtoa.o

@@ -68,6 +68,8 @@ static void sio_reverse(char s[], size_t len) {
     }
 }
 
+#define UINTMAX_DIGITS (CHAR_BIT * sizeof(uintmax_t))
+
 /* write_digits - write digit values of v in base b to string */
 static size_t write_digits(uintmax_t v, char s[], unsigned char b) {
     size_t i = 0;
@@ -106,6 +108,152 @@ static size_t uintmax_to_string(uintmax_t v, char s[], unsigned char b) {
     s[len] = '\0';
     sio_reverse(s, len);
     return len;
+}
+
+static ssize_t sio_format_intmax(sio_output_function output, void *output_state,
+                                 intmax_t d, unsigned char base,
+                                 ssize_t padding, size_t precision) {
+    bool neg = d < 0;
+    size_t len = 0;
+    char buf[2 * UINTMAX_DIGITS];
+    memset(&buf, 0, sizeof(buf));
+
+    if (neg) {
+        len = write_digits((uintmax_t)-d, &buf[0], base);
+    } else {
+        len = write_digits(d, &buf[0], base);
+    }
+    buf[len] = '\0';
+
+    size_t zero_needed = 0;
+
+    if (len < precision) {
+        zero_needed = precision - len;
+    }
+
+    size_t total_len = len + zero_needed + neg;
+    // Write output
+    size_t right_padding_count = 0;
+    size_t left_padding_count = 0;
+
+    ssize_t ret = 0;
+    ssize_t r = 0;
+
+    if (padding > 0 && (size_t)padding > total_len) {
+        left_padding_count = (size_t)padding - total_len;
+    }
+    if (padding < 0 && (size_t)(-padding) > total_len) {
+        right_padding_count = (size_t)(-padding) - total_len;
+    }
+
+    if (neg) {
+        if (len < precision) { // Outputting extra 0 needed
+            sio_reverse(buf, len);
+
+            r = output(output_state, ' ', left_padding_count, 0, "-",
+                       strlen("-"));
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+            r = output(output_state, '0', zero_needed, 0, NULL, 0);
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+            r = output(output_state, ' ', 0, right_padding_count, buf, len);
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+        } else {
+            buf[len++] = '-';
+            buf[len] = '\0';
+            sio_reverse(buf, len);
+            ret = output(output_state, ' ', left_padding_count,
+                         right_padding_count, buf, len);
+        }
+    } else {
+        sio_reverse(buf, len);
+        if (len < precision) { // Outputting extra 0 needed
+            r = output(output_state, ' ', left_padding_count, 0, NULL, 0);
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+            r = output(output_state, '0', zero_needed, 0, NULL, 0);
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+            r = output(output_state, ' ', 0, right_padding_count, buf, len);
+            if (r < 0) {
+                return -1;
+            }
+            ret += r;
+        } else {
+            ret = output(output_state, ' ', left_padding_count,
+                         right_padding_count, buf, len);
+        }
+    }
+    return ret;
+}
+
+static ssize_t sio_format_uintmax(sio_output_function output,
+                                  void *output_state, uintmax_t d,
+                                  unsigned char base, ssize_t padding,
+                                  size_t precision) {
+    size_t len;
+    char buf[2 * UINTMAX_DIGITS];
+    memset(&buf, 0, sizeof(buf));
+
+    len = write_digits(d, &buf[0], base);
+    buf[len] = '\0';
+
+    size_t zero_needed = 0;
+
+    if (len < precision) {
+        zero_needed = precision - len;
+    }
+
+    size_t total_len = len + zero_needed;
+    // Write output
+    size_t right_padding_count = 0;
+    size_t left_padding_count = 0;
+
+    ssize_t ret = 0;
+    ssize_t r = 0;
+
+    if (padding > 0 && (size_t)padding > total_len) {
+        left_padding_count = (size_t)padding - total_len;
+    }
+    if (padding < 0 && (size_t)(-padding) > total_len) {
+        right_padding_count = (size_t)(-padding) - total_len;
+    }
+
+    sio_reverse(buf, len);
+    if (len < precision) { // Outputting extra 0 needed
+        r = output(output_state, ' ', left_padding_count, 0, NULL, 0);
+        if (r < 0) {
+            return -1;
+        }
+        ret += r;
+        r = output(output_state, '0', zero_needed, 0, NULL, 0);
+        if (r < 0) {
+            return -1;
+        }
+        ret += r;
+        r = output(output_state, ' ', 0, right_padding_count, buf, len);
+        if (r < 0) {
+            return -1;
+        }
+        ret += r;
+    } else {
+        ret = output(output_state, ' ', left_padding_count, right_padding_count,
+                     buf, len);
+    }
+
+    return ret;
 }
 
 /* Public Sio functions */
@@ -162,7 +310,7 @@ ssize_t sio_eprintf(const char *fmt, ...) {
     return ret;
 }
 
-struct _format_data {
+struct sio_format_data {
     const char *str; // String to output
     size_t len;      // Length of string to output
     char buf[128];   // Backing buffer to use for conversions
@@ -209,7 +357,8 @@ ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
     if (size > 0) {
         state.buffer = str;
         state.remaining = size - 1;
-    } else { // No Output
+    } else {
+        // No Output
         state.buffer = NULL;
         state.remaining = 0;
     }
@@ -222,19 +371,22 @@ ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp) {
 
 #define PADDING_BUF_LEN 128
 
-ssize_t sio_write_output(void *state, char padding, size_t count_left, size_t count_right,
-                         const char *data, size_t len) {
+ssize_t sio_write_output(void *state, char padding, size_t count_left,
+                         size_t count_right, const char *data, size_t len) {
     int fileno = ((sio_write_output_t *)state)->fileno;
 
-    if (count_left > (size_t)SSIZE_MAX || len > (size_t) SSIZE_MAX || count_left + len > (size_t) SSIZE_MAX || count_right > (size_t) SSIZE_MAX || count_left + len + count_right > (size_t) SSIZE_MAX) {
+    if (count_left > (size_t)SSIZE_MAX || len > (size_t)SSIZE_MAX ||
+        count_left + len > (size_t)SSIZE_MAX ||
+        count_right > (size_t)SSIZE_MAX ||
+        count_left + len + count_right > (size_t)SSIZE_MAX) {
         return -1;
     }
     ssize_t num_written = 0;
 
     char buf[PADDING_BUF_LEN];
     memset(buf, padding, PADDING_BUF_LEN);
-    while ((size_t) num_written < count_left) {
-        size_t padding_left_len = count_left - (size_t) num_written;
+    while ((size_t)num_written < count_left) {
+        size_t padding_left_len = count_left - (size_t)num_written;
         if (padding_left_len > PADDING_BUF_LEN) {
             padding_left_len = PADDING_BUF_LEN;
         }
@@ -252,8 +404,9 @@ ssize_t sio_write_output(void *state, char padding, size_t count_left, size_t co
         }
         num_written += ret;
     }
-    while ((size_t) num_written < count_left + len + count_right) {
-        size_t padding_right_len = count_left + len + count_right - (size_t) num_written;
+    while ((size_t)num_written < count_left + len + count_right) {
+        size_t padding_right_len =
+            count_left + len + count_right - (size_t)num_written;
         if (padding_right_len > PADDING_BUF_LEN) {
             padding_right_len = PADDING_BUF_LEN;
         }
@@ -266,14 +419,15 @@ ssize_t sio_write_output(void *state, char padding, size_t count_left, size_t co
     return num_written;
 }
 
-ssize_t sio_buffer_output(void *state, char padding, size_t count_left, size_t count_right,
-                          const char *data, size_t len) {
-
+ssize_t sio_buffer_output(void *state, char padding, size_t count_left,
+                          size_t count_right, const char *data, size_t len) {
     size_t i = 0;
-    size_t total_len = count_left + len + count_right; // TODO check all those null bytes
-    if (total_len > SSIZE_MAX) { // This check is in general insufficient,
-                                 // but in our use case,
-                                 // one of the three number is 0.
+    size_t total_len =
+        count_left + len + count_right; // TODO check all those null bytes
+    if (total_len > SSIZE_MAX) {
+        // This check is in general insufficient,
+        // but in our use case,
+        // one of the three number is 0.
         return -1;
     }
     sio_buffer_output_t *buffer_state = state;
@@ -334,7 +488,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
     bool error = false;
     while (fmt[pos] != '\0') {
         // Int to string conversion
-        struct _format_data data;
+        struct sio_format_data data;
         memset(&data, 0, sizeof(data));
 
         const char *local_fmt = &fmt[pos];
@@ -342,10 +496,9 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
         size_t local_pos = 0;
         bool handled = false;
         ssize_t written = 0;
-        bool padded = false;
         bool precision_given = false;
         int padding = 0;
-        int precision = -1;
+        size_t precision = 0;
         size_t current = 0;
         number_size_t num_size = NumSizeInt;
         // number_type_t num_type = NumNone;
@@ -361,8 +514,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
             } convert_value = {.u = 0};
 
             if (local_fmt[current] == '*') {
-                if (local_fmt[current + 1] != '\0'){
-                    padded = true;
+                if (local_fmt[current + 1] != '\0') {
                     padding = va_arg(argp, int);
                     current++;
                 } else {
@@ -371,25 +523,27 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
             }
 
             if (local_fmt[current] == '.') {
-                if (local_fmt[current+1] == '*' && local_fmt[current] + 2 != '\0') {
-                    precision = va_arg(argp, int);
-                    if (precision >= 0) {
+                if (local_fmt[current + 1] == '*' &&
+                    local_fmt[current] + 2 != '\0') {
+                    int given_precision = va_arg(argp, int);
+                    if (given_precision >= 0) {
+                        precision = (size_t)given_precision;
                         precision_given = true;
-                    } // TODO, wire up correct usage and default value for types other than s and f.
-                    current+=2;
+                    }
+                    current += 2;
                 } else {
                     error = true;
                 }
             }
 
-
-            switch (local_fmt[current]) { // FIXME,
-                                          // risk of reading out of bounds
+            switch (local_fmt[current]) {
+            // FIXME,
+            // risk of reading out of bounds
             case 'l':
-                if (local_fmt[current+1] != '\0') {
+                if (local_fmt[current + 1] != '\0') {
                     current++;
                     if (local_fmt[current] == 'l') {
-                        if (local_fmt[current+1] != '\0') {
+                        if (local_fmt[current + 1] != '\0') {
                             num_size = NumSizeLongLong;
                             current++;
                         } else {
@@ -403,9 +557,9 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 }
                 break;
             case 'z':
-                if (local_fmt[current+1] != '\0') {
-                current++;
-                num_size = NumSizeSize;
+                if (local_fmt[current + 1] != '\0') {
+                    current++;
+                    num_size = NumSizeSize;
                 } else {
                     error = true;
                 }
@@ -413,7 +567,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
             } // add j for intmax_t ? t is ptr_diff ?
 
             switch (local_fmt[current]) {
-                // Character format
+            // Character format
             case 'c': {
                 if (num_size != NumSizeInt) {
                     error = true;
@@ -429,7 +583,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 break;
             }
 
-                // String format
+            // String format
             case 's': {
                 if (num_size != NumSizeInt) {
                     error = true;
@@ -439,7 +593,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                         data.str = "(null)";
                     }
                     data.len = strlen(data.str);
-                    if (precision_given && precision < data.len) {
+                    if (precision_given && (unsigned int)precision < data.len) {
                         data.len = precision;
                     }
                     handled = true;
@@ -449,7 +603,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 break;
             }
 
-                // Escaped %
+            // Escaped %
             case '%': {
                 if (current != 1) {
                     error = true;
@@ -463,7 +617,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 break;
             }
 
-                // Pointer type
+            // Pointer type
             case 'p': {
                 if (num_size != NumSizeInt) {
                     error = true;
@@ -483,7 +637,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 break;
             }
 
-                // Int types with no format specifier
+            // Int types with no format specifier
             case 'd':
             case 'i': {
                 // num_type = NumSigned;
@@ -537,7 +691,8 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 local_pos += current;
                 break;
             }
-            case 'f': { // Default float precision is 6
+            case 'f': {
+                // Default float precision is 6
                 // num_type = NumFloat;
                 current++;
                 switch (num_size) {
@@ -565,23 +720,31 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
             // Convert int type to string
             switch (convert_type) {
             case 'd':
-                data.str = data.buf;
-                data.len = intmax_to_string(convert_value.s, data.buf, 10);
+                data.len = 0;
+                written =
+                    sio_format_intmax(output, output_state, convert_value.s, 10,
+                                      padding, precision);
                 handled = true;
                 break;
             case 'u':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 10);
+                data.len = 0;
+                written =
+                    sio_format_uintmax(output, output_state, convert_value.u,
+                                       10, padding, precision);
                 handled = true;
                 break;
             case 'x':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 16);
+                data.len = 0;
+                written =
+                    sio_format_uintmax(output, output_state, convert_value.u,
+                                       16, padding, precision);
                 handled = true;
                 break;
             case 'o':
-                data.str = data.buf;
-                data.len = uintmax_to_string(convert_value.u, data.buf, 8);
+                data.len = 0;
+                written =
+                    sio_format_uintmax(output, output_state, convert_value.u, 8,
+                                       padding, precision);
                 handled = true;
                 break;
             case 'p':
@@ -589,6 +752,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 data.str = data.buf;
                 data.len =
                     uintmax_to_string(convert_value.u, data.buf + 2, 16) + 2;
+                // Note: Pointers do not abide by precision
                 handled = true;
                 break;
             case 'f':
@@ -601,7 +765,7 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
                 }
                 written = sio_format_double_exact(output, output_state,
                                                   convert_value.f, FORMAT_f,
-                                                  padding, precision); // Right padding is unsupported
+                                                  padding, precision);
 #else
                 data.str = "<float>";
                 data.len = strlen(data.str);
@@ -611,7 +775,6 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
             default:
                 error = true;
             }
-
         }
 
         // Didn't match a format above
@@ -628,15 +791,15 @@ ssize_t sio_vformat(sio_output_function output, void *output_state,
         // Write output
         size_t right_padding_count = 0;
         size_t left_padding_count = 0;
-        if (padded && padding > 0 && (size_t) padding > data.len) { // Right padding unsupported
-            left_padding_count = (size_t) padding - data.len;
+        if (padding > 0 && (size_t)padding > data.len) {
+            left_padding_count = (size_t)padding - data.len;
         }
-        if (padded && padding < 0 && (size_t) (-padding) > data.len) { // Right padding unsupported
-            right_padding_count = (size_t) (-padding) - data.len;
+        if (padding < 0 && (size_t)(-padding) > data.len) {
+            right_padding_count = (size_t)(-padding) - data.len;
         }
         if (written == 0) {
-            written =
-                output(output_state, ' ', left_padding_count, right_padding_count, data.str, data.len);
+            written = output(output_state, ' ', left_padding_count,
+                             right_padding_count, data.str, data.len);
         }
         if (written < 0) {
             return -1;
@@ -722,7 +885,8 @@ ssize_t rio_writen(int fd, const void *usrbuf, size_t n) {
 static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n) {
     size_t cnt;
 
-    while (rp->rio_cnt <= 0) { /* Refill if buf is empty */
+    while (rp->rio_cnt <= 0) {
+        /* Refill if buf is empty */
         rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
         if (rp->rio_cnt < 0) {
             if (errno != EINTR) {
@@ -856,9 +1020,11 @@ int open_clientfd(const char *hostname, const char *port) {
 
     /* Clean up */
     freeaddrinfo(listp);
-    if (!p) { /* All connects failed */
+    if (!p) {
+        /* All connects failed */
         return -1;
-    } else { /* The last connect succeeded */
+    } else {
+        /* The last connect succeeded */
         return clientfd;
     }
 }
@@ -903,7 +1069,8 @@ int open_listenfd(const char *port) {
             break; /* Success */
         }
 
-        if (close(listenfd) < 0) { /* Bind failed, try the next */
+        if (close(listenfd) < 0) {
+            /* Bind failed, try the next */
             fprintf(stderr, "open_listenfd close failed: %s\n",
                     strerror(errno));
             return -1;
@@ -912,7 +1079,8 @@ int open_listenfd(const char *port) {
 
     /* Clean up */
     freeaddrinfo(listp);
-    if (!p) { /* No address worked */
+    if (!p) {
+        /* No address worked */
         return -1;
     }
 

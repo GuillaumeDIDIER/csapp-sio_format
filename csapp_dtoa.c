@@ -943,8 +943,8 @@ ssize_t sio_format_double_shortest(sio_output_function output,
 
 /* TODO: Sign flags are unsupported for now */
 ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
-                                double d, dtoa_flags_t flags,
-                                ssize_t padding, int precision) {
+                                double d, dtoa_flags_t flags, ssize_t padding,
+                                size_t precision) {
     // First allocate an appropriately sized buffer ?
     // Rust uses 1024, to be determined if this is acceptable here.
 
@@ -960,9 +960,9 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
     size_t right_padding = 0;
 
     if (padding > 0) {
-        left_padding = (size_t) padding;
+        left_padding = (size_t)padding;
     } else {
-        right_padding = (size_t )  (-padding);
+        right_padding = (size_t)(-padding);
     }
 
     switch (float_kind) {
@@ -975,8 +975,8 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
             data++;
         }
         int16_t limit;
-        if (precision < -((int)INT16_MIN)) {
-            limit = (int16_t)-precision;
+        if (precision < (size_t)-INT16_MIN) {
+            limit = (int16_t)-(int)precision;
         } else {
             limit = INT16_MIN;
         }
@@ -1004,22 +1004,21 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                 right_padding_count = right_padding - length;
             }
 
-            ssize_t res = output(output_state, ' ', left_padding_count, 0, buffer,
-                                 strlen(buffer));
+            ssize_t res = output(output_state, ' ', left_padding_count, 0,
+                                 buffer, strlen(buffer));
             if (res < 0) {
                 return -1;
             }
             if (precision > 0) {
-                ssize_t r = output(output_state, '0', (size_t)precision, 0, NULL,
-                                   0);
+                ssize_t r =
+                    output(output_state, '0', (size_t)precision, 0, NULL, 0);
                 if (r < 0) {
                     return -1;
                 }
                 res += r;
-
             }
-            ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
-                       0);
+            ssize_t r = output(output_state, ' ', (size_t)right_padding_count,
+                               0, NULL, 0);
             if (r < 0) {
                 return -1;
             }
@@ -1050,8 +1049,9 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                 }
                 ssize_t res;
                 if (decoded.sign) {
-                    res = output(output_state, ' ', left_padding_count, 0, "-0.",
-                                 strlen("-0.")); // TODO error handling.
+                    res =
+                        output(output_state, ' ', left_padding_count, 0, "-0.",
+                               strlen("-0.")); // TODO error handling.
                 } else {
                     res = output(output_state, ' ', left_padding_count, 0, "0.",
                                  strlen("0.")); // TODO error handling.
@@ -1065,18 +1065,17 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     return -1;
                 }
                 res += r;
-                if (precision > 0 &&
-                    minus_exp + strlen(data) < (size_t)precision) {
+                if (precision > 0 && minus_exp + strlen(data) < precision) {
                     r = output(output_state, '0',
-                               (size_t)precision - (minus_exp + strlen(data)), 0,
-                               NULL, 0); // TODO error handling.
+                               precision - (minus_exp + strlen(data)), 0, NULL,
+                               0); // TODO error handling.
                     if (r < 0) {
                         return -1;
                     }
                     res += r;
                 }
-                r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
-                                   0);
+                r = output(output_state, ' ', (size_t)right_padding_count, 0,
+                           NULL, 0);
                 if (r < 0) {
                     return -1;
                 }
@@ -1088,8 +1087,7 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     // The exponent is inside the digits 1234.5678
                     size_t length;
                     if (precision > 0) {
-                        length =
-                            decoded.sign + sz_exponent + (size_t)precision + 1;
+                        length = decoded.sign + sz_exponent + precision + 1;
                     } else {
                         length = decoded.sign + sz_exponent;
                     }
@@ -1102,29 +1100,29 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                         right_padding_count = right_padding - length;
                     }
 
-                    ssize_t res = output(output_state, ' ', left_padding_count, 0,
-                                         buffer, sz_exponent + decoded.sign);
+                    ssize_t res = output(output_state, ' ', left_padding_count,
+                                         0, buffer, sz_exponent + decoded.sign);
                     if (res < 0) {
                         return -1;
                     }
-                    ssize_t r = output(output_state, '.', 1, 0, data + sz_exponent,
-                                       digits - sz_exponent);
+                    ssize_t r =
+                        output(output_state, '.', 1, 0, data + sz_exponent,
+                               digits - sz_exponent);
                     if (r < 0) {
                         return -1;
                     }
                     res += r;
-                    if (precision >= 0 &&
-                        (size_t)precision > digits - sz_exponent) {
+                    if (precision > digits - sz_exponent) {
                         r = output(output_state, '0',
-                                   (size_t)precision - digits + sz_exponent, 0,
-                                   NULL, 0);
+                                   precision - digits + sz_exponent, 0, NULL,
+                                   0);
                         if (r < 0) {
                             return -1;
                         }
                         res += r;
                     }
-                    r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
-                               0);
+                    r = output(output_state, ' ', (size_t)right_padding_count,
+                               0, NULL, 0);
                     if (r < 0) {
                         return -1;
                     }
@@ -1134,8 +1132,7 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     // The point is after the number
                     size_t length;
                     if (precision > 0) {
-                        length =
-                            decoded.sign + sz_exponent + (size_t)precision + 1;
+                        length = decoded.sign + sz_exponent + precision + 1;
                     } else {
                         length = decoded.sign + sz_exponent;
                     }
@@ -1147,8 +1144,8 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                     if (right_padding > length) {
                         right_padding_count = right_padding - length;
                     }
-                    ssize_t res = output(output_state, ' ', left_padding_count, 0,
-                                         buffer, digits + decoded.sign);
+                    ssize_t res = output(output_state, ' ', left_padding_count,
+                                         0, buffer, digits + decoded.sign);
                     if (res < 0) {
                         return -1;
                     }
@@ -1159,8 +1156,8 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                             return -1;
                         }
                         res += r;
-                        r = output(output_state, '0', (size_t)precision, 0, NULL,
-                                   0);
+                        r = output(output_state, '0', (size_t)precision, 0,
+                                   NULL, 0);
                         if (r < 0) {
                             return -1;
                         }
@@ -1173,8 +1170,8 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
                         }
                         res += r;
                     }
-                    ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
-                               0);
+                    ssize_t r = output(output_state, ' ',
+                                       (size_t)right_padding_count, 0, NULL, 0);
                     if (r < 0) {
                         return -1;
                     }
@@ -1194,7 +1191,7 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
         }
         size_t length;
         if (precision > 0) {
-            length = strlen(data) + (size_t)precision;
+            length = strlen(data) + precision;
         } else {
             length = strlen(data) - 1;
         }
@@ -1213,14 +1210,14 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
             return -1;
         }
         if (precision > 0) {
-            ssize_t r = output(output_state, '0', (size_t)precision, 0, NULL, 0);
+            ssize_t r = output(output_state, '0', precision, 0, NULL, 0);
             if (r < 0) {
                 return -1;
             }
             res += r;
         }
-        ssize_t r = output(output_state, ' ', (size_t)right_padding_count, 0, NULL,
-                           0);
+        ssize_t r =
+            output(output_state, ' ', (size_t)right_padding_count, 0, NULL, 0);
         if (r < 0) {
             return -1;
         }
@@ -1242,7 +1239,8 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
         if (right_padding > (strlen(data))) {
             right_padding_count = right_padding - (strlen(data));
         }
-        return output(output_state, ' ', left_padding_count, right_padding_count, data, strlen(data));
+        return output(output_state, ' ', left_padding_count,
+                      right_padding_count, data, strlen(data));
     }
     case FK_NAN: {
         char *data = "nan";
@@ -1254,9 +1252,11 @@ ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
         if (right_padding > (strlen(data))) {
             right_padding_count = right_padding - (strlen(data));
         }
-        return output(output_state, ' ', left_padding_count, right_padding_count, data, strlen(data));
+        return output(output_state, ' ', left_padding_count,
+                      right_padding_count, data, strlen(data));
     }
     }
+    sio_assert(false); // Unreachable
 }
 
 /* Architecture notes, we want a high level API equivalent to src/fmt/float.rs

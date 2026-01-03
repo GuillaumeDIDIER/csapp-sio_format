@@ -85,8 +85,8 @@ ssize_t sio_snprintf(char *str, size_t size, const char *fmt, ...)
 ssize_t sio_vsnprintf(char *str, size_t size, const char *fmt, va_list argp)
     __attribute__((format(printf, 3, 0)));
 
-typedef ssize_t (*sio_output_function)(void *, char, size_t, size_t, const char *,
-                                       size_t);
+typedef ssize_t (*sio_output_function)(void *, char, size_t, size_t,
+                                       const char *, size_t);
 ssize_t sio_format(sio_output_function output, void *output_state,
                    const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 ssize_t sio_vformat(sio_output_function output, void *output_state,
@@ -97,16 +97,16 @@ typedef struct {
     int fileno;
 } sio_write_output_t;
 
-ssize_t sio_write_output(void *state, char padding, size_t count_left, size_t count_right,
-                         const char *data, size_t len);
+ssize_t sio_write_output(void *state, char padding, size_t count_left,
+                         size_t count_right, const char *data, size_t len);
 
 typedef struct {
     char *buffer;
     size_t remaining;
 } sio_buffer_output_t;
 
-ssize_t sio_buffer_output(void *state, char padding, size_t count_left, size_t count_right,
-                          const char *data, size_t len);
+ssize_t sio_buffer_output(void *state, char padding, size_t count_left,
+                          size_t count_right, const char *data, size_t len);
 
 #define sio_assert(expr)                                                       \
     ((expr) ? (void)0 : __sio_assert_fail(#expr, __FILE__, __LINE__, __func__))

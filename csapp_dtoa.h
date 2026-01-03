@@ -29,7 +29,7 @@ ssize_t sio_format_double_shortest(sio_output_function output,
                                    dtoa_flags_t flags, ssize_t padding);
 
 ssize_t sio_format_double_exact(sio_output_function output, void *output_state,
-                                double d, dtoa_flags_t flags,
-                                ssize_t padding, int precision);
+                                double d, dtoa_flags_t flags, ssize_t padding,
+                                size_t precision);
 
 #endif // CSAPP_DTOA_H
